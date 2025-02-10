@@ -1,10 +1,9 @@
 import { Outlet } from "react-router-dom";
+import NavBar from "../components/shared/NavBar/NavBar";
 import "../index.css";
-
-import { useState } from "react";
-import NavBar from "@/components/shared/NavBar/NavBar";
+import Footer from "../components/shared/Footer/Footer";
 import SideBar from "@/components/shared/SideBar/SideBar";
-import Footer from "@/components/shared/Footer/Footer";
+import { useState } from "react";
 
 const MainLayout = () => {
   const [expandSideBar, setExpandSideBar] = useState(false);

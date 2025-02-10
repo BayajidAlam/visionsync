@@ -1,128 +1,91 @@
 import { createContext, useEffect, useState, ReactNode } from "react";
-import {
-  createUserWithEmailAndPassword,
-  EmailAuthProvider,
-  getAuth,
-  onAuthStateChanged,
-  reauthenticateWithCredential,
-  signInWithEmailAndPassword,
-  signOut,
-  updatePassword,
-  User,
-  UserCredential,
-} from "firebase/auth";
-import { app } from "../firebase/firebase.config";
-import axios from "axios";
+import { instance as axiosInstance } from "@/helpers/axios/axiosInstance";
+import { authKey } from "@/constants/storageKey";
+import {  setToLocalStorage } from "@/utils/local-storage";
+import { removeUserInfo } from "@/services/auth.service";
 
 interface AuthContextProps {
-  user: User | null;
+  user: any;
   loading: boolean;
-  createUser: (email: string, password: string) => Promise<UserCredential>;
-  logInUser: (email: string, password: string) => Promise<UserCredential>;
+  createUser: (email: string, password: string) => Promise<void>;
+  logInUser: (email: string, password: string) => Promise<void>;
   logOutUser: () => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
 }
 
-// creating auth
 export const AuthContext = createContext<AuthContextProps | null>(null);
-const auth = getAuth(app);
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-const AuthProvider = ({ children }: AuthProviderProps) => {
-  // states
-  const [user, setUser] = useState<User | null>(null);
+const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // functions
-  const createUser = (email: string, password: string) => {
-    setLoading(true);
-    return createUserWithEmailAndPassword(auth, email, password);
-  };
-
-  const logInUser = (email: string, password: string) => {
-    setLoading(true);
-    return signInWithEmailAndPassword(auth, email, password);
-  };
-
-  const changePassword = async (
-    currentPassword: string,
-    newPassword: string
-  ) => {
-    setLoading(true);
-
-    if (!user) {
-      throw new Error("No user is currently logged in");
-    }
-
-    // reauthenticate the user
-    const credential = EmailAuthProvider.credential(
-      // @ts-ignore
-      user.email,
-      currentPassword
-    );
-    await reauthenticateWithCredential(user, credential);
-
-    // then update the password
+  // Fetch the current user
+  const fetchUser = async () => {
     try {
-      await updatePassword(user, newPassword);
-      console.log("Password updated successfully");
-    } catch (error) {
-      console.error("Failed to update password:", error);
+      const { data } = await axiosInstance.get("/me");
+      setUser(data.user);
+    } catch {
+      setUser(null);
     } finally {
       setLoading(false);
     }
   };
 
-  const logOutUser = () => {
-    setLoading(true);
-    return signOut(auth);
-  };
-
-  // observer
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-
-      if (currentUser) {
-        axios
-          .post(`${import.meta.env.VITE_API_URL}/jwt`, {
-            email: currentUser?.email,
-          })
-          .then((data) => {
-            console.log(currentUser, "currentUser");
-            localStorage.setItem("access-token", data.data.token);
-            setLoading(false);
-          })
-          .catch((error) => {
-            console.error("Axios request failed:", error);
-          });
-      } else {
-        localStorage.removeItem("access-token");
-        setLoading(false);
-      }
-    });
-
-    return () => {
-      return unsubscribe();
-    };
+    fetchUser();
   }, []);
 
-  const authInfo = {
-    user,
-    loading,
-    createUser,
-    logInUser,
-    changePassword,
-    logOutUser,
+  // Register new user
+  const createUser = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      await axiosInstance.post("/register", { email, password });
+      await fetchUser();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Login user
+  const logInUser = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      const { data } = await axiosInstance.post("/login", { email, password });
+      setToLocalStorage(authKey, data.accessToken);
+      await fetchUser();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Logout user
+  const logOutUser = async () => {
+    setLoading(true);
+    try {
+      await axiosInstance.post("/logout");
+    } finally {
+      removeUserInfo(authKey);
+      setUser(null);
+      setLoading(false);
+    }
+  };
+
+  // Forgot Password
+  const forgotPassword = async (email: string) => {
+    try {
+      await axiosInstance.post("/forgot-password", { email });
+    } catch (error) {
+      console.error("Forgot password error:", error);
+    }
   };
 
   return (
-    <AuthContext.Provider value={authInfo}>{children}</AuthContext.Provider>
+    <AuthContext.Provider
+      value={{ user, loading, createUser, logInUser, logOutUser, forgotPassword }}
+    >
+      {children}
+    </AuthContext.Provider>
   );
 };
 
 export default AuthProvider;
-
-
