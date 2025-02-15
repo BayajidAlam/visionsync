@@ -1,52 +1,22 @@
 {
-  "name": "server",
-  "author":"Bayajid Alam Joyel",
+  "name": "visionsync",
   "version": "1.0.0",
-  "main": "index.js",
+  "type": "module",
+  "description": "visionSync is a on demand video streaming platform ![image](https://github.com/user-attachments/assets/fd472f19-4583-4f34-a477-12f44d3de38e)",
+  "main": "app.js",
   "scripts": {
-    "dev": "yarn start",
-    "start": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "lint:check": "eslint --ignore-path .eslintignore --ext .js,.ts .",
-    "lint:fix": "eslint . --fix",
-    "prettier:check": "prettier --ignore-path .gitignore --write \"**/*.+(js|ts|json)\"",
-    "prettier:fix": "prettier --write .",
-    "lint-prettier": "yarn lint:check && yarn prettier:check",
+    "dev": "nodemon app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
-  },"lint-staged": {
-    "src/**/*.ts": "yarn lint-prettier"
   },
   "keywords": [],
+  "author": "",
   "license": "ISC",
-  "devDependencies": {
-    "@eslint/js": "^9.5.0",
-    "@types/cors": "^2.8.13",
-    "@types/express": "^4.17.17",
-    "@typescript-eslint/eslint-plugin": "^7.13.0",
-    "@typescript-eslint/parser": "^7.13.0",
-    "eslint-config-prettier": "^8.8.0",
-    "globals": "^15.4.0",
-    "husky": "^8.0.3",
-    "lint-staged": "^13.2.2",
-    "prettier": "^2.8.8",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.4.5",
-    "typescript-eslint": "^7.13.0"
-  },
   "dependencies": {
-    "@types/bcrypt": "^5.0.0",
-    "@types/cookie-parser": "^1.4.3",
-    "@types/jsonwebtoken": "^9.0.2",
-    "bcrypt": "^5.1.0",
-    "cookie-parser": "^1.4.6",
+    "@aws-sdk/client-s3": "^3.744.0",
+    "@aws-sdk/s3-request-presigner": "^3.744.0",
     "cors": "^2.8.5",
-    "dotenv": "^16.0.3",
-    "express": "^4.18.2",
-    "http-status": "^1.6.2",
-    "jsonwebtoken": "^9.0.0",
-    "mongoose": "^7.2.1",
-    "winston": "^3.9.0",
-    "winston-daily-rotate-file": "^4.7.1",
-    "zod": "^3.21.4"
-  },
-  "description": ""
+    "dotenv": "^16.4.7",
+    "expess": "^0.0.1-security",
+    "express": "^4.21.2"
+  }
 }

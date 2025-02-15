@@ -1,0 +1,21 @@
+{
+  "name": "video-processor",
+  "version": "1.0.0",
+  "description": "Video processing service for streaming platform",
+  "main": "process-video.js",
+  "scripts": {
+    "start": "node process-video.js",
+    "test": "jest"
+  },
+  "dependencies": {
+    "aws-sdk": "^2.1490.0",
+    "fluent-ffmpeg": "^2.1.2",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

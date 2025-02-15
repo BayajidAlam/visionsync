@@ -1,0 +1,62 @@
+flowchart TB
+    subgraph Frontend
+        UI[React UI]
+        Player[Video Player]
+    end
+
+    subgraph API
+        API_GW[API Gateway]
+        Auth[Auth Service]
+        VideoAPI[Video Service]
+    end
+
+    subgraph Processing
+        S3_Raw[(Raw S3)]
+        SQS[[SQS Queue]]
+        Lambda[Lambda Trigger]
+        ECS[ECS Container]
+        S3_Processed[(Processed S3)]
+    end
+
+    subgraph Database
+        MongoDB[(MongoDB)]
+    end
+
+    subgraph CDN
+        CloudFront{CloudFront}
+    end
+
+    UI -->|Upload| API_GW
+    API_GW -->|Validate| Auth
+    Auth -->|Get Presigned URL| VideoAPI
+    VideoAPI -->|Store Metadata| MongoDB
+    VideoAPI -->|Generate URL| S3_Raw
+    S3_Raw -->|Trigger| SQS
+    SQS -->|Trigger| Lambda
+    Lambda -->|Start| ECS
+    ECS -->|Read| S3_Raw
+    ECS -->|Write| S3_Processed
+    ECS -->|Update Status| MongoDB
+    S3_Processed -->|Serve| CloudFront
+    CloudFront -->|Stream| Player
+
+
+I want to buila a video streaming application that will do following task
+- user can upload video using presigned url
+- video will be uploaded to s3
+- than i a container will launch and do following task
+   - The video will compress  using ffmpge
+  - video will convert to various resulation
+  - every video will convert to many chunks
+- all chunks of all resulation will save another s3 bucket/buckets
+  - if the video will server by dash in fe a master mpd will created
+user will fetch the video using a api.
+- the api will serve the video from s3
+
+
+
+how to implement it using react ts, tailwind. node ts, mongodb and aws
+
+first explain my process.
+is it alright or wrong
+is there any better approch
