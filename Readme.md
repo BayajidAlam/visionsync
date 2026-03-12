@@ -1,5 +1,9 @@
 # VisionSync: A Scalable Cloud-Native Video Streaming Platform
 
+VisionSync is an on demand video streaming platform.
+
+![VisionSync](https://github.com/user-attachments/assets/fd472f19-4583-4f34-a477-12f44d3de38e)
+
 ## Table of Contents
 
 - [Problem Statement](#problem-statement)
