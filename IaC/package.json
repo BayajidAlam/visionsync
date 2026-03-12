@@ -1,0 +1,30 @@
+{
+  "name": "vision-sync-infrastructure",
+  "version": "1.0.0",
+  "description": "VisionSync video streaming platform infrastructure",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "deploy": "pulumi up",
+    "destroy": "pulumi destroy",
+    "preview": "pulumi preview",
+    "refresh": "pulumi refresh",
+    "stack:select": "pulumi stack select",
+    "stack:output": "pulumi stack output",
+    "config:set": "pulumi config set",
+    "logs:lambda": "pulumi logs --follow --resource lambda",
+    "logs:ecs": "aws logs tail /ecs/vision-sync-video-processing-$(pulumi stack --show-name) --follow"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@pulumi/aws": "^6.0.0",
+    "@pulumi/awsx": "^2.0.2",
+    "@pulumi/pulumi": "^3.189.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

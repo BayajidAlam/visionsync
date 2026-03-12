@@ -1,8 +1,10 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import path from 'path'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "path";
+import { fileURLToPath } from "url";
 
-// https://vitejs.dev/config/
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -12,6 +14,17 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    open: true
-  }
-})
+    host: true,
+  },
+  build: {
+    outDir: "dist",
+    sourcemap: true,
+  },
+  optimizeDeps: {
+    // Same alias for esbuild (Vite dev server pre-bundler).
+    esbuildOptions: {
+      conditions: ["import", "browser", "module", "default"],
+    },
+    exclude: ["lucide-react"],
+  },
+});

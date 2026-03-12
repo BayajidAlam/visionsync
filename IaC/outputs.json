@@ -1,0 +1,3018 @@
+{
+  "alb": {
+    "accessLogs": {
+      "bucket": "",
+      "enabled": false,
+      "prefix": ""
+    },
+    "arn": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:loadbalancer/app/vision-sync-alb-dev/68493d8ad96619b8",
+    "arnSuffix": "app/vision-sync-alb-dev/68493d8ad96619b8",
+    "clientKeepAlive": 3600,
+    "connectionLogs": {
+      "bucket": "",
+      "enabled": false,
+      "prefix": ""
+    },
+    "customerOwnedIpv4Pool": "",
+    "desyncMitigationMode": "defensive",
+    "dnsName": "vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com",
+    "dnsRecordClientRoutingPolicy": null,
+    "dropInvalidHeaderFields": false,
+    "enableCrossZoneLoadBalancing": true,
+    "enableDeletionProtection": false,
+    "enableHttp2": true,
+    "enableTlsVersionAndCipherSuiteHeaders": false,
+    "enableWafFailOpen": false,
+    "enableXffClientPort": false,
+    "enableZonalShift": false,
+    "enforceSecurityGroupInboundRulesOnPrivateLinkTraffic": "",
+    "id": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:loadbalancer/app/vision-sync-alb-dev/68493d8ad96619b8",
+    "idleTimeout": 60,
+    "internal": false,
+    "ipAddressType": "ipv4",
+    "ipamPools": null,
+    "loadBalancerType": "application",
+    "minimumLoadBalancerCapacity": null,
+    "name": "vision-sync-alb-dev",
+    "namePrefix": "",
+    "preserveHostHeader": false,
+    "securityGroups": [
+      "sg-0034df384d6f3b7bf"
+    ],
+    "subnetMappings": [
+      {
+        "allocationId": "",
+        "ipv6Address": "",
+        "outpostId": "",
+        "privateIpv4Address": "",
+        "subnetId": "subnet-010e5ac21cd8c0126"
+      },
+      {
+        "allocationId": "",
+        "ipv6Address": "",
+        "outpostId": "",
+        "privateIpv4Address": "",
+        "subnetId": "subnet-03ad1cbb476fe8b7c"
+      }
+    ],
+    "subnets": [
+      "subnet-010e5ac21cd8c0126",
+      "subnet-03ad1cbb476fe8b7c"
+    ],
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-alb",
+      "Project": "VisionSync",
+      "Purpose": "backend-load-balancer"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-alb",
+      "Project": "VisionSync",
+      "Purpose": "backend-load-balancer"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:lb/loadBalancer:LoadBalancer::vision-sync-alb",
+    "vpcId": "vpc-0df1ecaaa12a5dd23",
+    "xffHeaderProcessingMode": "append",
+    "zoneId": "Z1LMS91P8CMLE5"
+  },
+  "albDnsName": "vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com",
+  "albSg": {
+    "arn": "arn:aws:ec2:ap-southeast-1:366451245016:security-group/sg-0034df384d6f3b7bf",
+    "description": "Managed by Pulumi",
+    "egress": [
+      {
+        "cidrBlocks": [
+          "0.0.0.0/0"
+        ],
+        "description": "All outbound traffic",
+        "fromPort": 0,
+        "ipv6CidrBlocks": [],
+        "prefixListIds": [],
+        "protocol": "-1",
+        "securityGroups": [],
+        "self": false,
+        "toPort": 0
+      }
+    ],
+    "id": "sg-0034df384d6f3b7bf",
+    "ingress": [
+      {
+        "cidrBlocks": [
+          "0.0.0.0/0"
+        ],
+        "description": "HTTP access from internet",
+        "fromPort": 80,
+        "ipv6CidrBlocks": [],
+        "prefixListIds": [],
+        "protocol": "tcp",
+        "securityGroups": [],
+        "self": false,
+        "toPort": 80
+      },
+      {
+        "cidrBlocks": [
+          "0.0.0.0/0"
+        ],
+        "description": "HTTPS access from internet",
+        "fromPort": 443,
+        "ipv6CidrBlocks": [],
+        "prefixListIds": [],
+        "protocol": "tcp",
+        "securityGroups": [],
+        "self": false,
+        "toPort": 443
+      }
+    ],
+    "name": "vision-sync-alb-sg-dev",
+    "namePrefix": "",
+    "ownerId": "366451245016",
+    "revokeRulesOnDelete": false,
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "alb-security-group",
+      "Project": "VisionSync",
+      "Purpose": "public-web-access"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "alb-security-group",
+      "Project": "VisionSync",
+      "Purpose": "public-web-access"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ec2/securityGroup:SecurityGroup::alb-sg",
+    "vpcId": "vpc-0df1ecaaa12a5dd23"
+  },
+  "apiListenerRule": {
+    "actions": [
+      {
+        "authenticateCognito": null,
+        "authenticateOidc": null,
+        "fixedResponse": null,
+        "forward": null,
+        "order": 1,
+        "redirect": null,
+        "targetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:targetgroup/vision-sync-backend-tg-dev/9c67d27d4fc39506",
+        "type": "forward"
+      }
+    ],
+    "arn": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:listener-rule/app/vision-sync-alb-dev/68493d8ad96619b8/9dc0b3e1506ca953/9e4a72ccafe3d960",
+    "conditions": [
+      {
+        "hostHeader": null,
+        "httpHeader": null,
+        "httpRequestMethod": null,
+        "pathPattern": {
+          "values": [
+            "/api/*"
+          ]
+        },
+        "queryStrings": [],
+        "sourceIp": null
+      }
+    ],
+    "id": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:listener-rule/app/vision-sync-alb-dev/68493d8ad96619b8/9dc0b3e1506ca953/9e4a72ccafe3d960",
+    "listenerArn": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:listener/app/vision-sync-alb-dev/68493d8ad96619b8/9dc0b3e1506ca953",
+    "priority": 100,
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "api-routing-rule",
+      "Project": "VisionSync"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "api-routing-rule",
+      "Project": "VisionSync"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:lb/listenerRule:ListenerRule::api-listener-rule"
+  },
+  "appLogGroup": {
+    "arn": "arn:aws:logs:ap-southeast-1:366451245016:log-group:/aws/application/vision-sync-dev",
+    "id": "/aws/application/vision-sync-dev",
+    "kmsKeyId": "",
+    "logGroupClass": "STANDARD",
+    "name": "/aws/application/vision-sync-dev",
+    "namePrefix": "",
+    "retentionInDays": 30,
+    "skipDestroy": false,
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "application-logging"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "application-logging"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:cloudwatch/logGroup:LogGroup::app-log-group"
+  },
+  "applicationUrl": "http://vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com",
+  "backendInstance": {
+    "ami": "ami-0c1d28734eb221b6d",
+    "arn": "arn:aws:ec2:ap-southeast-1:366451245016:instance/i-06f7979597ad0c544",
+    "associatePublicIpAddress": false,
+    "availabilityZone": "ap-southeast-1a",
+    "capacityReservationSpecification": {
+      "capacityReservationPreference": "open",
+      "capacityReservationTarget": null
+    },
+    "cpuCoreCount": 1,
+    "cpuOptions": {
+      "amdSevSnp": "",
+      "coreCount": 1,
+      "threadsPerCore": 2
+    },
+    "cpuThreadsPerCore": 2,
+    "creditSpecification": {
+      "cpuCredits": "unlimited"
+    },
+    "disableApiStop": false,
+    "disableApiTermination": false,
+    "ebsBlockDevices": [],
+    "ebsOptimized": false,
+    "enablePrimaryIpv6": null,
+    "enclaveOptions": {
+      "enabled": false
+    },
+    "ephemeralBlockDevices": [],
+    "getPasswordData": false,
+    "hibernation": false,
+    "hostId": "",
+    "hostResourceGroupArn": null,
+    "iamInstanceProfile": "backend-profile-b2ea02c",
+    "id": "i-06f7979597ad0c544",
+    "instanceInitiatedShutdownBehavior": "stop",
+    "instanceLifecycle": "",
+    "instanceMarketOptions": null,
+    "instanceState": "running",
+    "instanceType": "t3.small",
+    "ipv6AddressCount": 0,
+    "ipv6Addresses": [],
+    "keyName": "vision-sync-backend-dev",
+    "launchTemplate": null,
+    "maintenanceOptions": {
+      "autoRecovery": "default"
+    },
+    "metadataOptions": {
+      "httpEndpoint": "enabled",
+      "httpProtocolIpv6": "disabled",
+      "httpPutResponseHopLimit": 1,
+      "httpTokens": "optional",
+      "instanceMetadataTags": "disabled"
+    },
+    "monitoring": false,
+    "networkInterfaces": [],
+    "outpostArn": "",
+    "passwordData": "",
+    "placementGroup": "",
+    "placementPartitionNumber": 0,
+    "primaryNetworkInterfaceId": "eni-06c5b93d1a0645726",
+    "privateDns": "ip-10-0-42-158.ap-southeast-1.compute.internal",
+    "privateDnsNameOptions": {
+      "enableResourceNameDnsARecord": false,
+      "enableResourceNameDnsAaaaRecord": false,
+      "hostnameType": "ip-name"
+    },
+    "privateIp": "10.0.42.158",
+    "publicDns": "",
+    "publicIp": "",
+    "rootBlockDevice": {
+      "deleteOnTermination": true,
+      "deviceName": "/dev/sda1",
+      "encrypted": false,
+      "iops": 100,
+      "kmsKeyId": "",
+      "tags": {},
+      "tagsAll": {},
+      "throughput": 0,
+      "volumeId": "vol-001f3b94491ed3856",
+      "volumeSize": 8,
+      "volumeType": "gp2"
+    },
+    "secondaryPrivateIps": [],
+    "securityGroups": [],
+    "sourceDestCheck": true,
+    "spotInstanceRequestId": "",
+    "subnetId": "subnet-0712cb3f6aa83cb15",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-backend-dev",
+      "Project": "VisionSync"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-backend-dev",
+      "Project": "VisionSync"
+    },
+    "tenancy": "default",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ec2/instance:Instance::backend-instance",
+    "userData": "056b8941039bb08f21afd80968cc61bfc51622a9",
+    "userDataBase64": null,
+    "userDataReplaceOnChange": false,
+    "volumeTags": null,
+    "vpcSecurityGroupIds": [
+      "sg-0c0baafd5561e0fa9"
+    ]
+  },
+  "backendKey": {
+    "arn": "arn:aws:ec2:ap-southeast-1:366451245016:key-pair/vision-sync-backend-dev",
+    "fingerprint": "3e:e2:72:d1:86:70:fa:0f:a6:8f:a3:1e:e4:cf:1d:26",
+    "id": "vision-sync-backend-dev",
+    "keyName": "vision-sync-backend-dev",
+    "keyNamePrefix": "",
+    "keyPairId": "key-0f55b5a0fd7f1410d",
+    "keyType": "rsa",
+    "publicKey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCbcJdpZXyYCYHMSuMxQy9hRbeQ9CvFDDvqUB4WKaQR7rHvtfGGArqecQpdjvE4ARYdcp6WySIWAj27gnXwW5ZfXqYibx4lsg4QTNvKnZ6woXSrNjFQibzALMNwepfzZViCbWrzo1rwsDYuo1MQgPbsx1KioVQudZcVMNhSdtwhFptWAFO0mjYw3eGONS9M7kSpCsooVOwe8zTmUIs0rYwS0Sfn5Ivmk4lj4yTUjHuZ7ARCmRv934oK3in9x8y1bF6cl9dt2K7ONZrnafGDtZEOVNA+M65iU8uev/nM5BV/MN+SBpugCI8mjotd47IwfWk6uwnfXxYrmoPAHeJKC2qn vision-sync-backend",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ec2/keyPair:KeyPair::backend-key"
+  },
+  "backendPolicy": {
+    "arn": "arn:aws:iam::366451245016:policy/backend-policy-ac459c9",
+    "attachmentCount": 0,
+    "description": "",
+    "id": "arn:aws:iam::366451245016:policy/backend-policy-ac459c9",
+    "name": "backend-policy-ac459c9",
+    "namePrefix": "",
+    "path": "/",
+    "policy": "{\"Statement\":[{\"Action\":[\"s3:*\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:s3:::vision-sync-raw-videos-dev/*\",\"arn:aws:s3:::vision-sync-processed-videos-dev/*\",\"arn:aws:s3:::vision-sync-raw-videos-dev\",\"arn:aws:s3:::vision-sync-processed-videos-dev\"]},{\"Action\":[\"sqs:*\"],\"Effect\":\"Allow\",\"Resource\":\"arn:aws:sqs:ap-southeast-1:366451245016:vision-sync-video-processing-dev\"},{\"Action\":[\"ecr:GetAuthorizationToken\",\"ecr:BatchCheckLayerAvailability\",\"ecr:GetDownloadUrlForLayer\",\"ecr:BatchGetImage\",\"ecr:PutImage\",\"ecr:InitiateLayerUpload\",\"ecr:UploadLayerPart\",\"ecr:CompleteLayerUpload\"],\"Effect\":\"Allow\",\"Resource\":[\"arn:aws:ecr:ap-southeast-1:366451245016:repository/vision-sync-client-dev\",\"arn:aws:ecr:ap-southeast-1:366451245016:repository/vision-sync-server-dev\",\"arn:aws:ecr:ap-southeast-1:366451245016:repository/vision-sync-video-processor-dev\"]},{\"Action\":[\"ecr:GetAuthorizationToken\"],\"Effect\":\"Allow\",\"Resource\":\"*\"}],\"Version\":\"2012-10-17\"}",
+    "policyId": "ANPAVKURSH7MO6NS4AZAA",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:iam/policy:Policy::backend-policy"
+  },
+  "backendPolicyAttachment": {
+    "id": "backend-role-52f390f-20260311213833256000000008",
+    "policyArn": "arn:aws:iam::366451245016:policy/backend-policy-ac459c9",
+    "role": "backend-role-52f390f",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:iam/rolePolicyAttachment:RolePolicyAttachment::backend-policy-attach"
+  },
+  "backendPrivateIp": "10.0.42.158",
+  "backendProfile": {
+    "arn": "arn:aws:iam::366451245016:instance-profile/backend-profile-b2ea02c",
+    "createDate": "2026-03-11T21:37:16Z",
+    "id": "backend-profile-b2ea02c",
+    "name": "backend-profile-b2ea02c",
+    "namePrefix": "",
+    "path": "/",
+    "role": "backend-role-52f390f",
+    "uniqueId": "AIPAVKURSH7MBAVDL44WM",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:iam/instanceProfile:InstanceProfile::backend-profile"
+  },
+  "backendRole": {
+    "arn": "arn:aws:iam::366451245016:role/backend-role-52f390f",
+    "assumeRolePolicy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+    "createDate": "2026-03-11T21:37:13Z",
+    "description": "",
+    "forceDetachPolicies": false,
+    "id": "backend-role-52f390f",
+    "inlinePolicies": [],
+    "managedPolicyArns": [],
+    "maxSessionDuration": 3600,
+    "name": "backend-role-52f390f",
+    "namePrefix": "",
+    "path": "/",
+    "permissionsBoundary": "",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync"
+    },
+    "uniqueId": "AROAVKURSH7MET3Y7VIB7",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:iam/role:Role::backend-role"
+  },
+  "backendSg": {
+    "arn": "arn:aws:ec2:ap-southeast-1:366451245016:security-group/sg-0c0baafd5561e0fa9",
+    "description": "Managed by Pulumi",
+    "egress": [
+      {
+        "cidrBlocks": [
+          "0.0.0.0/0"
+        ],
+        "description": "All outbound traffic",
+        "fromPort": 0,
+        "ipv6CidrBlocks": [],
+        "prefixListIds": [],
+        "protocol": "-1",
+        "securityGroups": [],
+        "self": false,
+        "toPort": 0
+      }
+    ],
+    "id": "sg-0c0baafd5561e0fa9",
+    "ingress": [
+      {
+        "cidrBlocks": [
+          "10.0.0.0/16"
+        ],
+        "description": "Backend API access from VPC",
+        "fromPort": 5000,
+        "ipv6CidrBlocks": [],
+        "prefixListIds": [],
+        "protocol": "tcp",
+        "securityGroups": [],
+        "self": false,
+        "toPort": 5000
+      },
+      {
+        "cidrBlocks": [
+          "10.0.0.0/16"
+        ],
+        "description": "HTTP access from VPC",
+        "fromPort": 80,
+        "ipv6CidrBlocks": [],
+        "prefixListIds": [],
+        "protocol": "tcp",
+        "securityGroups": [],
+        "self": false,
+        "toPort": 80
+      },
+      {
+        "cidrBlocks": [
+          "10.0.0.0/16"
+        ],
+        "description": "SSH access from VPC",
+        "fromPort": 22,
+        "ipv6CidrBlocks": [],
+        "prefixListIds": [],
+        "protocol": "tcp",
+        "securityGroups": [],
+        "self": false,
+        "toPort": 22
+      }
+    ],
+    "name": "vision-sync-backend-sg-dev",
+    "namePrefix": "",
+    "ownerId": "366451245016",
+    "revokeRulesOnDelete": false,
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "backend-private-access"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "backend-private-access"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ec2/securityGroup:SecurityGroup::backend-sg",
+    "vpcId": "vpc-0df1ecaaa12a5dd23"
+  },
+  "backendTargetAttachment": {
+    "availabilityZone": null,
+    "id": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:targetgroup/vision-sync-backend-tg-dev/9c67d27d4fc39506-20260311224855000200000006",
+    "port": 5000,
+    "targetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:targetgroup/vision-sync-backend-tg-dev/9c67d27d4fc39506",
+    "targetId": "i-06f7979597ad0c544",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:lb/targetGroupAttachment:TargetGroupAttachment::backend-tg-attachment"
+  },
+  "backendTargetGroup": {
+    "arn": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:targetgroup/vision-sync-backend-tg-dev/9c67d27d4fc39506",
+    "arnSuffix": "targetgroup/vision-sync-backend-tg-dev/9c67d27d4fc39506",
+    "connectionTermination": null,
+    "deregistrationDelay": 300,
+    "healthCheck": {
+      "enabled": true,
+      "healthyThreshold": 2,
+      "interval": 30,
+      "matcher": "200",
+      "path": "/api/health",
+      "port": "traffic-port",
+      "protocol": "HTTP",
+      "timeout": 5,
+      "unhealthyThreshold": 2
+    },
+    "id": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:targetgroup/vision-sync-backend-tg-dev/9c67d27d4fc39506",
+    "ipAddressType": "ipv4",
+    "lambdaMultiValueHeadersEnabled": false,
+    "loadBalancerArns": [],
+    "loadBalancingAlgorithmType": "round_robin",
+    "loadBalancingAnomalyMitigation": "off",
+    "loadBalancingCrossZoneEnabled": "use_load_balancer_configuration",
+    "name": "vision-sync-backend-tg-dev",
+    "namePrefix": "",
+    "port": 5000,
+    "preserveClientIp": null,
+    "protocol": "HTTP",
+    "protocolVersion": "HTTP1",
+    "proxyProtocolV2": false,
+    "slowStart": 0,
+    "stickiness": {
+      "cookieDuration": 86400,
+      "cookieName": "",
+      "enabled": false,
+      "type": "lb_cookie"
+    },
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "backend-target-group",
+      "Project": "VisionSync"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "backend-target-group",
+      "Project": "VisionSync"
+    },
+    "targetFailovers": [],
+    "targetGroupHealth": {
+      "dnsFailover": {
+        "minimumHealthyTargetsCount": "1",
+        "minimumHealthyTargetsPercentage": "off"
+      },
+      "unhealthyStateRouting": {
+        "minimumHealthyTargetsCount": 1,
+        "minimumHealthyTargetsPercentage": "off"
+      }
+    },
+    "targetHealthStates": [],
+    "targetType": "instance",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:lb/targetGroup:TargetGroup::backend-tg",
+    "vpcId": "vpc-0df1ecaaa12a5dd23"
+  },
+  "backendUrl": "http://vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com",
+  "bastionEip": {
+    "address": null,
+    "allocationId": "eipalloc-0b7795a4caaf6b6d6",
+    "arn": "arn:aws:ec2:ap-southeast-1:366451245016:elastic-ip/eipalloc-0b7795a4caaf6b6d6",
+    "associateWithPrivateIp": null,
+    "associationId": "eipassoc-0a2d7ff6ff7207631",
+    "carrierIp": "",
+    "customerOwnedIp": "",
+    "customerOwnedIpv4Pool": "",
+    "domain": "vpc",
+    "id": "eipalloc-0b7795a4caaf6b6d6",
+    "instance": "i-06b90eea0f985fa41",
+    "ipamPoolId": null,
+    "networkBorderGroup": "ap-southeast-1",
+    "networkInterface": "eni-0dda150c25f0e5853",
+    "privateDns": "ip-10-0-88-49.ap-southeast-1.compute.internal",
+    "privateIp": "10.0.88.49",
+    "ptrRecord": "",
+    "publicDns": "ec2-52-77-164-183.ap-southeast-1.compute.amazonaws.com",
+    "publicIp": "52.77.164.183",
+    "publicIpv4Pool": "amazon",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "bastion-eip"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "bastion-eip"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ec2/eip:Eip::bastion-eip",
+    "vpc": true
+  },
+  "bastionInstance": {
+    "ami": "ami-0c1d28734eb221b6d",
+    "arn": "arn:aws:ec2:ap-southeast-1:366451245016:instance/i-06b90eea0f985fa41",
+    "associatePublicIpAddress": true,
+    "availabilityZone": "ap-southeast-1a",
+    "capacityReservationSpecification": {
+      "capacityReservationPreference": "open",
+      "capacityReservationTarget": null
+    },
+    "cpuCoreCount": 1,
+    "cpuOptions": {
+      "amdSevSnp": "",
+      "coreCount": 1,
+      "threadsPerCore": 2
+    },
+    "cpuThreadsPerCore": 2,
+    "creditSpecification": {
+      "cpuCredits": "unlimited"
+    },
+    "disableApiStop": false,
+    "disableApiTermination": false,
+    "ebsBlockDevices": [],
+    "ebsOptimized": false,
+    "enablePrimaryIpv6": null,
+    "enclaveOptions": {
+      "enabled": false
+    },
+    "ephemeralBlockDevices": [],
+    "getPasswordData": false,
+    "hibernation": false,
+    "hostId": "",
+    "hostResourceGroupArn": null,
+    "iamInstanceProfile": "bastion-profile-2ef2257",
+    "id": "i-06b90eea0f985fa41",
+    "instanceInitiatedShutdownBehavior": "stop",
+    "instanceLifecycle": "",
+    "instanceMarketOptions": null,
+    "instanceState": "running",
+    "instanceType": "t3.micro",
+    "ipv6AddressCount": 0,
+    "ipv6Addresses": [],
+    "keyName": "vision-sync-bastion-dev",
+    "launchTemplate": null,
+    "maintenanceOptions": {
+      "autoRecovery": "default"
+    },
+    "metadataOptions": {
+      "httpEndpoint": "enabled",
+      "httpProtocolIpv6": "disabled",
+      "httpPutResponseHopLimit": 1,
+      "httpTokens": "optional",
+      "instanceMetadataTags": "disabled"
+    },
+    "monitoring": false,
+    "networkInterfaces": [],
+    "outpostArn": "",
+    "passwordData": "",
+    "placementGroup": "",
+    "placementPartitionNumber": 0,
+    "primaryNetworkInterfaceId": "eni-0dda150c25f0e5853",
+    "privateDns": "ip-10-0-88-49.ap-southeast-1.compute.internal",
+    "privateDnsNameOptions": {
+      "enableResourceNameDnsARecord": false,
+      "enableResourceNameDnsAaaaRecord": false,
+      "hostnameType": "ip-name"
+    },
+    "privateIp": "10.0.88.49",
+    "publicDns": "ec2-13-229-50-185.ap-southeast-1.compute.amazonaws.com",
+    "publicIp": "13.229.50.185",
+    "rootBlockDevice": {
+      "deleteOnTermination": true,
+      "deviceName": "/dev/sda1",
+      "encrypted": false,
+      "iops": 100,
+      "kmsKeyId": "",
+      "tags": {},
+      "tagsAll": {},
+      "throughput": 0,
+      "volumeId": "vol-0b3cc4da7f4604e5a",
+      "volumeSize": 8,
+      "volumeType": "gp2"
+    },
+    "secondaryPrivateIps": [],
+    "securityGroups": [],
+    "sourceDestCheck": true,
+    "spotInstanceRequestId": "",
+    "subnetId": "subnet-03ad1cbb476fe8b7c",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-bastion-dev",
+      "Project": "VisionSync",
+      "Purpose": "bastion-host"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-bastion-dev",
+      "Project": "VisionSync",
+      "Purpose": "bastion-host"
+    },
+    "tenancy": "default",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ec2/instance:Instance::bastion-instance",
+    "userData": "812c57cb0386082267b1dfa7b427e896b8d533a6",
+    "userDataBase64": null,
+    "userDataReplaceOnChange": false,
+    "volumeTags": null,
+    "vpcSecurityGroupIds": [
+      "sg-048bc0291c847ed37"
+    ]
+  },
+  "bastionKey": {
+    "arn": "arn:aws:ec2:ap-southeast-1:366451245016:key-pair/vision-sync-bastion-dev",
+    "fingerprint": "3e:e2:72:d1:86:70:fa:0f:a6:8f:a3:1e:e4:cf:1d:26",
+    "id": "vision-sync-bastion-dev",
+    "keyName": "vision-sync-bastion-dev",
+    "keyNamePrefix": "",
+    "keyPairId": "key-0df5127d2be207d60",
+    "keyType": "rsa",
+    "publicKey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCbcJdpZXyYCYHMSuMxQy9hRbeQ9CvFDDvqUB4WKaQR7rHvtfGGArqecQpdjvE4ARYdcp6WySIWAj27gnXwW5ZfXqYibx4lsg4QTNvKnZ6woXSrNjFQibzALMNwepfzZViCbWrzo1rwsDYuo1MQgPbsx1KioVQudZcVMNhSdtwhFptWAFO0mjYw3eGONS9M7kSpCsooVOwe8zTmUIs0rYwS0Sfn5Ivmk4lj4yTUjHuZ7ARCmRv934oK3in9x8y1bF6cl9dt2K7ONZrnafGDtZEOVNA+M65iU8uev/nM5BV/MN+SBpugCI8mjotd47IwfWk6uwnfXxYrmoPAHeJKC2qn vision-sync-backend",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "bastion-access"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "bastion-access"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ec2/keyPair:KeyPair::bastion-key"
+  },
+  "bastionPolicy": {
+    "arn": "arn:aws:iam::366451245016:policy/vision-sync-bastion-policy-dev",
+    "attachmentCount": 1,
+    "description": "",
+    "id": "arn:aws:iam::366451245016:policy/vision-sync-bastion-policy-dev",
+    "name": "vision-sync-bastion-policy-dev",
+    "namePrefix": "",
+    "path": "/",
+    "policy": "{\"Statement\":[{\"Action\":[\"ec2:DescribeInstances\",\"ec2:DescribeImages\",\"ec2:DescribeKeyPairs\",\"ec2:DescribeSecurityGroups\",\"ec2:DescribeSubnets\"],\"Effect\":\"Allow\",\"Resource\":\"*\"},{\"Action\":[\"ecr:GetAuthorizationToken\",\"ecr:BatchCheckLayerAvailability\",\"ecr:GetDownloadUrlForLayer\",\"ecr:BatchGetImage\",\"ecr:PutImage\",\"ecr:InitiateLayerUpload\",\"ecr:UploadLayerPart\",\"ecr:CompleteLayerUpload\"],\"Effect\":\"Allow\",\"Resource\":\"*\"}],\"Version\":\"2012-10-17\"}",
+    "policyId": "ANPAVKURSH7MKVRXSHEZ4",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:iam/policy:Policy::bastion-policy"
+  },
+  "bastionPolicyAttachment": {
+    "id": "bastion-role-80c532f-20260311213741230400000002",
+    "policyArn": "arn:aws:iam::366451245016:policy/vision-sync-bastion-policy-dev",
+    "role": "bastion-role-80c532f",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:iam/rolePolicyAttachment:RolePolicyAttachment::bastion-policy-attach"
+  },
+  "bastionProfile": {
+    "arn": "arn:aws:iam::366451245016:instance-profile/bastion-profile-2ef2257",
+    "createDate": "2026-03-11T21:37:16Z",
+    "id": "bastion-profile-2ef2257",
+    "name": "bastion-profile-2ef2257",
+    "namePrefix": "",
+    "path": "/",
+    "role": "bastion-role-80c532f",
+    "uniqueId": "AIPAVKURSH7MJGE6T25NB",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:iam/instanceProfile:InstanceProfile::bastion-profile"
+  },
+  "bastionPublicIp": "52.77.164.183",
+  "bastionRole": {
+    "arn": "arn:aws:iam::366451245016:role/bastion-role-80c532f",
+    "assumeRolePolicy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ec2.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+    "createDate": "2026-03-11T21:37:13Z",
+    "description": "",
+    "forceDetachPolicies": false,
+    "id": "bastion-role-80c532f",
+    "inlinePolicies": [],
+    "managedPolicyArns": [],
+    "maxSessionDuration": 3600,
+    "name": "bastion-role-80c532f",
+    "namePrefix": "",
+    "path": "/",
+    "permissionsBoundary": "",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "bastion-role"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "bastion-role"
+    },
+    "uniqueId": "AROAVKURSH7MOO3J76OPB",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:iam/role:Role::bastion-role"
+  },
+  "bastionSg": {
+    "arn": "arn:aws:ec2:ap-southeast-1:366451245016:security-group/sg-048bc0291c847ed37",
+    "description": "Managed by Pulumi",
+    "egress": [
+      {
+        "cidrBlocks": [
+          "0.0.0.0/0"
+        ],
+        "description": "All outbound traffic",
+        "fromPort": 0,
+        "ipv6CidrBlocks": [],
+        "prefixListIds": [],
+        "protocol": "-1",
+        "securityGroups": [],
+        "self": false,
+        "toPort": 0
+      }
+    ],
+    "id": "sg-048bc0291c847ed37",
+    "ingress": [
+      {
+        "cidrBlocks": [
+          "0.0.0.0/0"
+        ],
+        "description": "SSH access from internet",
+        "fromPort": 22,
+        "ipv6CidrBlocks": [],
+        "prefixListIds": [],
+        "protocol": "tcp",
+        "securityGroups": [],
+        "self": false,
+        "toPort": 22
+      }
+    ],
+    "name": "vision-sync-bastion-sg-dev",
+    "namePrefix": "",
+    "ownerId": "366451245016",
+    "revokeRulesOnDelete": false,
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "bastion-security-group",
+      "Project": "VisionSync",
+      "Purpose": "bastion-access"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "bastion-security-group",
+      "Project": "VisionSync",
+      "Purpose": "bastion-access"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ec2/securityGroup:SecurityGroup::bastion-sg",
+    "vpcId": "vpc-0df1ecaaa12a5dd23"
+  },
+  "caller": {
+    "accountId": "366451245016",
+    "arn": "arn:aws:iam::366451245016:user/bayajidSwe",
+    "id": "366451245016",
+    "userId": "AIDAVKURSH7MOI6XHLZIP"
+  },
+  "clientEcrRepository": {
+    "arn": "arn:aws:ecr:ap-southeast-1:366451245016:repository/vision-sync-client-dev",
+    "encryptionConfigurations": [
+      {
+        "encryptionType": "AES256",
+        "kmsKey": ""
+      }
+    ],
+    "forceDelete": null,
+    "id": "vision-sync-client-dev",
+    "imageScanningConfiguration": {
+      "scanOnPush": true
+    },
+    "imageTagMutability": "MUTABLE",
+    "name": "vision-sync-client-dev",
+    "registryId": "366451245016",
+    "repositoryUrl": "366451245016.dkr.ecr.ap-southeast-1.amazonaws.com/vision-sync-client-dev",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "client-frontend-container"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "client-frontend-container"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ecr/repository:Repository::client-repo"
+  },
+  "commonTags": {
+    "Environment": "dev",
+    "ManagedBy": "Pulumi",
+    "Project": "VisionSync"
+  },
+  "config": {
+    "name": "vision-sync-infrastructure"
+  },
+  "distribution": {
+    "aliases": null,
+    "arn": "arn:aws:cloudfront::366451245016:distribution/E3FPVBRK9HDKQ5",
+    "callerReference": "terraform-20260311213741634200000003",
+    "comment": "Vision Sync processed videos distribution",
+    "continuousDeploymentPolicyId": "",
+    "customErrorResponses": [],
+    "defaultCacheBehavior": {
+      "allowedMethods": [
+        "DELETE",
+        "GET",
+        "HEAD",
+        "OPTIONS",
+        "PATCH",
+        "POST",
+        "PUT"
+      ],
+      "cachePolicyId": "",
+      "cachedMethods": [
+        "GET",
+        "HEAD"
+      ],
+      "compress": true,
+      "defaultTtl": 3600,
+      "fieldLevelEncryptionId": "",
+      "forwardedValues": {
+        "cookies": {
+          "forward": "none",
+          "whitelistedNames": []
+        },
+        "headers": [],
+        "queryString": false,
+        "queryStringCacheKeys": []
+      },
+      "functionAssociations": [],
+      "grpcConfig": {
+        "enabled": false
+      },
+      "lambdaFunctionAssociations": [],
+      "maxTtl": 86400,
+      "minTtl": 0,
+      "originRequestPolicyId": "",
+      "realtimeLogConfigArn": "",
+      "responseHeadersPolicyId": "",
+      "smoothStreaming": false,
+      "targetOriginId": "vision-sync-processed-videos-dev",
+      "trustedKeyGroups": [],
+      "trustedSigners": [],
+      "viewerProtocolPolicy": "redirect-to-https"
+    },
+    "defaultRootObject": "",
+    "domainName": "d11zonfo5y8dyu.cloudfront.net",
+    "enabled": true,
+    "etag": "E23ZP02F085DFQ",
+    "hostedZoneId": "Z2FDTNDATAQYW2",
+    "httpVersion": "http2",
+    "id": "E3FPVBRK9HDKQ5",
+    "inProgressValidationBatches": 0,
+    "isIpv6Enabled": true,
+    "lastModifiedTime": "2026-03-11 21:37:16.669 +0000 UTC",
+    "loggingConfig": null,
+    "orderedCacheBehaviors": [
+      {
+        "allowedMethods": [
+          "GET",
+          "HEAD",
+          "OPTIONS"
+        ],
+        "cachePolicyId": "",
+        "cachedMethods": [
+          "GET",
+          "HEAD"
+        ],
+        "compress": true,
+        "defaultTtl": 300,
+        "fieldLevelEncryptionId": "",
+        "forwardedValues": {
+          "cookies": {
+            "forward": "none",
+            "whitelistedNames": null
+          },
+          "headers": [
+            "Access-Control-Request-Headers",
+            "Access-Control-Request-Method",
+            "Origin"
+          ],
+          "queryString": false,
+          "queryStringCacheKeys": []
+        },
+        "functionAssociations": [],
+        "grpcConfig": {
+          "enabled": false
+        },
+        "lambdaFunctionAssociations": [],
+        "maxTtl": 1200,
+        "minTtl": 0,
+        "originRequestPolicyId": "",
+        "pathPattern": "*.mpd",
+        "realtimeLogConfigArn": "",
+        "responseHeadersPolicyId": "",
+        "smoothStreaming": false,
+        "targetOriginId": "vision-sync-processed-videos-dev",
+        "trustedKeyGroups": null,
+        "trustedSigners": null,
+        "viewerProtocolPolicy": "redirect-to-https"
+      },
+      {
+        "allowedMethods": [
+          "GET",
+          "HEAD",
+          "OPTIONS"
+        ],
+        "cachePolicyId": "",
+        "cachedMethods": [
+          "GET",
+          "HEAD"
+        ],
+        "compress": true,
+        "defaultTtl": 86400,
+        "fieldLevelEncryptionId": "",
+        "forwardedValues": {
+          "cookies": {
+            "forward": "none",
+            "whitelistedNames": null
+          },
+          "headers": [
+            "Access-Control-Request-Headers",
+            "Access-Control-Request-Method",
+            "Origin"
+          ],
+          "queryString": false,
+          "queryStringCacheKeys": []
+        },
+        "functionAssociations": [],
+        "grpcConfig": {
+          "enabled": false
+        },
+        "lambdaFunctionAssociations": [],
+        "maxTtl": 31536000,
+        "minTtl": 0,
+        "originRequestPolicyId": "",
+        "pathPattern": "*.m4s",
+        "realtimeLogConfigArn": "",
+        "responseHeadersPolicyId": "",
+        "smoothStreaming": false,
+        "targetOriginId": "vision-sync-processed-videos-dev",
+        "trustedKeyGroups": null,
+        "trustedSigners": null,
+        "viewerProtocolPolicy": "redirect-to-https"
+      }
+    ],
+    "originGroups": [],
+    "origins": [
+      {
+        "connectionAttempts": 3,
+        "connectionTimeout": 10,
+        "customHeaders": [],
+        "customOriginConfig": null,
+        "domainName": "vision-sync-processed-videos-dev.s3.amazonaws.com",
+        "originAccessControlId": "E1SX4RBYO0N261",
+        "originId": "vision-sync-processed-videos-dev",
+        "originPath": "",
+        "originShield": null,
+        "s3OriginConfig": null,
+        "vpcOriginConfig": null
+      }
+    ],
+    "priceClass": "PriceClass_All",
+    "restrictions": {
+      "geoRestriction": {
+        "locations": [],
+        "restrictionType": "none"
+      }
+    },
+    "retainOnDelete": false,
+    "staging": false,
+    "status": "Deployed",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "video-cdn"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "video-cdn"
+    },
+    "trustedKeyGroups": [
+      {
+        "enabled": false,
+        "items": []
+      }
+    ],
+    "trustedSigners": [
+      {
+        "enabled": false,
+        "items": []
+      }
+    ],
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:cloudfront/distribution:Distribution::processed-videos-cdn",
+    "viewerCertificate": {
+      "acmCertificateArn": "",
+      "cloudfrontDefaultCertificate": true,
+      "iamCertificateId": "",
+      "minimumProtocolVersion": "TLSv1",
+      "sslSupportMethod": ""
+    },
+    "waitForDeployment": true,
+    "webAclId": ""
+  },
+  "ecrRepository": {
+    "arn": "arn:aws:ecr:ap-southeast-1:366451245016:repository/vision-sync-video-processor-dev",
+    "encryptionConfigurations": [
+      {
+        "encryptionType": "AES256",
+        "kmsKey": ""
+      }
+    ],
+    "forceDelete": null,
+    "id": "vision-sync-video-processor-dev",
+    "imageScanningConfiguration": {
+      "scanOnPush": true
+    },
+    "imageTagMutability": "MUTABLE",
+    "name": "vision-sync-video-processor-dev",
+    "registryId": "366451245016",
+    "repositoryUrl": "366451245016.dkr.ecr.ap-southeast-1.amazonaws.com/vision-sync-video-processor-dev",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "video-processing-container"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "video-processing-container"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ecr/repository:Repository::video-processor-repo"
+  },
+  "ecsCluster": {
+    "arn": "arn:aws:ecs:ap-southeast-1:366451245016:cluster/vision-sync-processing-dev",
+    "configuration": null,
+    "id": "arn:aws:ecs:ap-southeast-1:366451245016:cluster/vision-sync-processing-dev",
+    "name": "vision-sync-processing-dev",
+    "serviceConnectDefaults": null,
+    "settings": [
+      {
+        "name": "containerInsights",
+        "value": "enabled"
+      }
+    ],
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "video-processing"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "video-processing"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ecs/cluster:Cluster::video-processing-cluster"
+  },
+  "ecsExecutionRole": {
+    "arn": "arn:aws:iam::366451245016:role/vision-sync-ecs-execution-role-dev",
+    "assumeRolePolicy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ecs-tasks.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+    "createDate": "2026-03-11T21:37:13Z",
+    "description": "",
+    "forceDetachPolicies": false,
+    "id": "vision-sync-ecs-execution-role-dev",
+    "inlinePolicies": [],
+    "managedPolicyArns": [],
+    "maxSessionDuration": 3600,
+    "name": "vision-sync-ecs-execution-role-dev",
+    "namePrefix": "",
+    "path": "/",
+    "permissionsBoundary": "",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync"
+    },
+    "uniqueId": "AROAVKURSH7MAIYYRNA6U",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:iam/role:Role::ecs-execution-role"
+  },
+  "ecsLogGroup": {
+    "arn": "arn:aws:logs:ap-southeast-1:366451245016:log-group:/aws/ecs/vision-sync-dev",
+    "id": "/aws/ecs/vision-sync-dev",
+    "kmsKeyId": "",
+    "logGroupClass": "STANDARD",
+    "name": "/aws/ecs/vision-sync-dev",
+    "namePrefix": "",
+    "retentionInDays": 7,
+    "skipDestroy": false,
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "ecs-logging"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "ecs-logging"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:cloudwatch/logGroup:LogGroup::ecs-log-group"
+  },
+  "ecsTaskDefinition": {
+    "arn": "arn:aws:ecs:ap-southeast-1:366451245016:task-definition/vision-sync-video-processing-dev:1",
+    "arnWithoutRevision": "arn:aws:ecs:ap-southeast-1:366451245016:task-definition/vision-sync-video-processing-dev",
+    "containerDefinitions": "[{\"cpu\":2048,\"environment\":[{\"name\":\"AWS_REGION\",\"value\":\"ap-southeast-1\"},{\"name\":\"CLOUDFRONT_DOMAIN\",\"value\":\"d11zonfo5y8dyu.cloudfront.net\"},{\"name\":\"CLOUDFRONT_URL\",\"value\":\"https://d11zonfo5y8dyu.cloudfront.net\"},{\"name\":\"ENABLE_BATCH_MODE\",\"value\":\"true\"},{\"name\":\"FFMPEG_PRESET\",\"value\":\"fast\"},{\"name\":\"FFMPEG_THREADS\",\"value\":\"2\"},{\"name\":\"INSTANCE_TYPE\",\"value\":\"spot\"},{\"name\":\"MAX_PROCESSING_TIME\",\"value\":\"1800\"},{\"name\":\"NODE_ENV\",\"value\":\"production\"},{\"name\":\"OUTPUT_BUCKET\",\"value\":\"vision-sync-processed-videos-dev\"},{\"name\":\"PROCESSING_PRIORITY\",\"value\":\"low\"},{\"name\":\"TEMP_DIR\",\"value\":\"/tmp/video-processing\"},{\"name\":\"VIDEO_BUCKET\",\"value\":\"vision-sync-raw-videos-dev\"},{\"name\":\"VIDEO_FILE_NAME\",\"value\":\"\"},{\"name\":\"VIDEO_ID\",\"value\":\"\"},{\"name\":\"WEBHOOK_URL\",\"value\":\"http://vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com/api/webhook/processing-complete\"}],\"essential\":true,\"healthCheck\":{\"command\":[\"CMD-SHELL\",\"node -e \\\"console.log('healthy')\\\" || exit 1\"],\"interval\":30,\"retries\":3,\"startPeriod\":60,\"timeout\":5},\"image\":\"366451245016.dkr.ecr.ap-southeast-1.amazonaws.com/vision-sync-video-processor-dev:latest\",\"logConfiguration\":{\"logDriver\":\"awslogs\",\"options\":{\"awslogs-group\":\"/aws/ecs/vision-sync-dev\",\"awslogs-region\":\"ap-southeast-1\",\"awslogs-stream-prefix\":\"ecs\"}},\"memory\":4096,\"mountPoints\":[],\"name\":\"video-processor\",\"portMappings\":[],\"stopTimeout\":120,\"systemControls\":[],\"volumesFrom\":[]}]",
+    "cpu": "2048",
+    "enableFaultInjection": false,
+    "ephemeralStorage": null,
+    "executionRoleArn": "arn:aws:iam::366451245016:role/vision-sync-ecs-execution-role-dev",
+    "family": "vision-sync-video-processing-dev",
+    "id": "vision-sync-video-processing-dev",
+    "inferenceAccelerators": [],
+    "ipcMode": "",
+    "memory": "4096",
+    "networkMode": "awsvpc",
+    "pidMode": "",
+    "placementConstraints": [],
+    "proxyConfiguration": null,
+    "requiresCompatibilities": [
+      "FARGATE"
+    ],
+    "revision": 1,
+    "runtimePlatform": null,
+    "skipDestroy": false,
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "video-processing-task"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "video-processing-task"
+    },
+    "taskRoleArn": "arn:aws:iam::366451245016:role/vision-sync-ecs-task-role-dev",
+    "trackLatest": false,
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ecs/taskDefinition:TaskDefinition::video-processing-task",
+    "volumes": []
+  },
+  "ecsTaskRole": {
+    "arn": "arn:aws:iam::366451245016:role/vision-sync-ecs-task-role-dev",
+    "assumeRolePolicy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"ecs-tasks.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+    "createDate": "2026-03-11T21:37:13Z",
+    "description": "",
+    "forceDetachPolicies": false,
+    "id": "vision-sync-ecs-task-role-dev",
+    "inlinePolicies": [],
+    "managedPolicyArns": [],
+    "maxSessionDuration": 3600,
+    "name": "vision-sync-ecs-task-role-dev",
+    "namePrefix": "",
+    "path": "/",
+    "permissionsBoundary": "",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync"
+    },
+    "uniqueId": "AROAVKURSH7MIXNFBSY2A",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:iam/role:Role::ecs-task-role"
+  },
+  "frontendTargetAttachment": {
+    "availabilityZone": null,
+    "id": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:targetgroup/vision-sync-frontend-tg-dev/5722a9cfa4428749-20260311214027165900000010",
+    "port": 80,
+    "targetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:targetgroup/vision-sync-frontend-tg-dev/5722a9cfa4428749",
+    "targetId": "i-0b1012d91a3a5bba5",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:lb/targetGroupAttachment:TargetGroupAttachment::frontend-tg-attachment"
+  },
+  "frontendTargetGroup": {
+    "arn": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:targetgroup/vision-sync-frontend-tg-dev/5722a9cfa4428749",
+    "arnSuffix": "targetgroup/vision-sync-frontend-tg-dev/5722a9cfa4428749",
+    "connectionTermination": null,
+    "deregistrationDelay": 300,
+    "healthCheck": {
+      "enabled": true,
+      "healthyThreshold": 2,
+      "interval": 30,
+      "matcher": "200",
+      "path": "/",
+      "port": "traffic-port",
+      "protocol": "HTTP",
+      "timeout": 5,
+      "unhealthyThreshold": 2
+    },
+    "id": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:targetgroup/vision-sync-frontend-tg-dev/5722a9cfa4428749",
+    "ipAddressType": "ipv4",
+    "lambdaMultiValueHeadersEnabled": false,
+    "loadBalancerArns": [],
+    "loadBalancingAlgorithmType": "round_robin",
+    "loadBalancingAnomalyMitigation": "off",
+    "loadBalancingCrossZoneEnabled": "use_load_balancer_configuration",
+    "name": "vision-sync-frontend-tg-dev",
+    "namePrefix": "",
+    "port": 80,
+    "preserveClientIp": null,
+    "protocol": "HTTP",
+    "protocolVersion": "HTTP1",
+    "proxyProtocolV2": false,
+    "slowStart": 0,
+    "stickiness": {
+      "cookieDuration": 86400,
+      "cookieName": "",
+      "enabled": false,
+      "type": "lb_cookie"
+    },
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "frontend-target-group",
+      "Project": "VisionSync"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "frontend-target-group",
+      "Project": "VisionSync"
+    },
+    "targetFailovers": [],
+    "targetGroupHealth": {
+      "dnsFailover": {
+        "minimumHealthyTargetsCount": "1",
+        "minimumHealthyTargetsPercentage": "off"
+      },
+      "unhealthyStateRouting": {
+        "minimumHealthyTargetsCount": 1,
+        "minimumHealthyTargetsPercentage": "off"
+      }
+    },
+    "targetHealthStates": [],
+    "targetType": "instance",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:lb/targetGroup:TargetGroup::frontend-tg",
+    "vpcId": "vpc-0df1ecaaa12a5dd23"
+  },
+  "httpListener": {
+    "alpnPolicy": null,
+    "arn": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:listener/app/vision-sync-alb-dev/68493d8ad96619b8/9dc0b3e1506ca953",
+    "certificateArn": null,
+    "defaultActions": [
+      {
+        "authenticateCognito": null,
+        "authenticateOidc": null,
+        "fixedResponse": null,
+        "forward": null,
+        "order": 1,
+        "redirect": null,
+        "targetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:targetgroup/vision-sync-frontend-tg-dev/5722a9cfa4428749",
+        "type": "forward"
+      }
+    ],
+    "id": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:listener/app/vision-sync-alb-dev/68493d8ad96619b8/9dc0b3e1506ca953",
+    "loadBalancerArn": "arn:aws:elasticloadbalancing:ap-southeast-1:366451245016:loadbalancer/app/vision-sync-alb-dev/68493d8ad96619b8",
+    "mutualAuthentication": null,
+    "port": 80,
+    "protocol": "HTTP",
+    "routingHttpRequestXAmznMtlsClientcertHeaderName": null,
+    "routingHttpRequestXAmznMtlsClientcertIssuerHeaderName": null,
+    "routingHttpRequestXAmznMtlsClientcertLeafHeaderName": null,
+    "routingHttpRequestXAmznMtlsClientcertSerialNumberHeaderName": null,
+    "routingHttpRequestXAmznMtlsClientcertSubjectHeaderName": null,
+    "routingHttpRequestXAmznMtlsClientcertValidityHeaderName": null,
+    "routingHttpRequestXAmznTlsCipherSuiteHeaderName": null,
+    "routingHttpRequestXAmznTlsVersionHeaderName": null,
+    "routingHttpResponseAccessControlAllowCredentialsHeaderValue": "",
+    "routingHttpResponseAccessControlAllowHeadersHeaderValue": "",
+    "routingHttpResponseAccessControlAllowMethodsHeaderValue": "",
+    "routingHttpResponseAccessControlAllowOriginHeaderValue": "",
+    "routingHttpResponseAccessControlExposeHeadersHeaderValue": "",
+    "routingHttpResponseAccessControlMaxAgeHeaderValue": "",
+    "routingHttpResponseContentSecurityPolicyHeaderValue": "",
+    "routingHttpResponseServerEnabled": true,
+    "routingHttpResponseStrictTransportSecurityHeaderValue": "",
+    "routingHttpResponseXContentTypeOptionsHeaderValue": "",
+    "routingHttpResponseXFrameOptionsHeaderValue": "",
+    "sslPolicy": "",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "http-listener",
+      "Project": "VisionSync"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "http-listener",
+      "Project": "VisionSync"
+    },
+    "tcpIdleTimeoutSeconds": null,
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:lb/listener:Listener::http-listener"
+  },
+  "lambdaErrorAlarm": {
+    "actionsEnabled": true,
+    "alarmActions": null,
+    "alarmDescription": "Lambda function error rate is too high",
+    "arn": "arn:aws:cloudwatch:ap-southeast-1:366451245016:alarm:vision-sync-lambda-errors-dev",
+    "comparisonOperator": "GreaterThanThreshold",
+    "datapointsToAlarm": 0,
+    "dimensions": {
+      "FunctionName": "vision-sync-ecs-trigger-dev"
+    },
+    "evaluateLowSampleCountPercentiles": "",
+    "evaluationPeriods": 2,
+    "extendedStatistic": "",
+    "id": "vision-sync-lambda-errors-dev",
+    "insufficientDataActions": null,
+    "metricName": "Errors",
+    "metricQueries": [],
+    "name": "vision-sync-lambda-errors-dev",
+    "namespace": "AWS/Lambda",
+    "okActions": null,
+    "period": 300,
+    "statistic": "Sum",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "monitoring"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "monitoring"
+    },
+    "threshold": 5,
+    "thresholdMetricId": "",
+    "treatMissingData": "missing",
+    "unit": "",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:cloudwatch/metricAlarm:MetricAlarm::lambda-error-alarm"
+  },
+  "lambdaExecutionRole": {
+    "arn": "arn:aws:iam::366451245016:role/vision-sync-lambda-execution-role-dev",
+    "assumeRolePolicy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+    "createDate": "2026-03-11T21:37:13Z",
+    "description": "",
+    "forceDetachPolicies": false,
+    "id": "vision-sync-lambda-execution-role-dev",
+    "inlinePolicies": [],
+    "managedPolicyArns": [],
+    "maxSessionDuration": 3600,
+    "name": "vision-sync-lambda-execution-role-dev",
+    "namePrefix": "",
+    "path": "/",
+    "permissionsBoundary": "",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync"
+    },
+    "uniqueId": "AROAVKURSH7MA7X6U5XDL",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:iam/role:Role::lambda-execution-role"
+  },
+  "lambdaLogGroup": {
+    "arn": "arn:aws:logs:ap-southeast-1:366451245016:log-group:/aws/lambda/vision-sync-dev",
+    "id": "/aws/lambda/vision-sync-dev",
+    "kmsKeyId": "",
+    "logGroupClass": "STANDARD",
+    "name": "/aws/lambda/vision-sync-dev",
+    "namePrefix": "",
+    "retentionInDays": 14,
+    "skipDestroy": false,
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "lambda-logging"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "lambda-logging"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:cloudwatch/logGroup:LogGroup::lambda-log-group"
+  },
+  "lambdaSg": {
+    "arn": "arn:aws:ec2:ap-southeast-1:366451245016:security-group/sg-0605cf2707e5e5845",
+    "description": "Security group for Lambda ECS trigger - HTTPS egress to AWS APIs only",
+    "egress": [
+      {
+        "cidrBlocks": [
+          "0.0.0.0/0"
+        ],
+        "description": "HTTPS to AWS APIs (ECS, SQS, CloudWatch, ECR)",
+        "fromPort": 443,
+        "ipv6CidrBlocks": [],
+        "prefixListIds": [],
+        "protocol": "tcp",
+        "securityGroups": [],
+        "self": false,
+        "toPort": 443
+      }
+    ],
+    "id": "sg-0605cf2707e5e5845",
+    "ingress": [],
+    "name": "vision-sync-lambda-sg-dev",
+    "namePrefix": "",
+    "ownerId": "366451245016",
+    "revokeRulesOnDelete": false,
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "lambda-security-group",
+      "Project": "VisionSync",
+      "Purpose": "lambda-egress"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "lambda-security-group",
+      "Project": "VisionSync",
+      "Purpose": "lambda-egress"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ec2/securityGroup:SecurityGroup::lambda-sg",
+    "vpcId": "vpc-0df1ecaaa12a5dd23"
+  },
+  "lambdaWithDependency": {
+    "architectures": [
+      "x86_64"
+    ],
+    "arn": "arn:aws:lambda:ap-southeast-1:366451245016:function:vision-sync-ecs-trigger-dev",
+    "code": {
+      "assets": {
+        ".": {
+          "path": "../lambda/dist"
+        },
+        "node_modules": {
+          "path": "../lambda/node_modules"
+        }
+      }
+    },
+    "codeSha256": "vDC+Hq7S8oD+g0uQRUJlBLk4GU7GPbJvCYl8dnqkhHQ=",
+    "codeSigningConfigArn": "",
+    "deadLetterConfig": {
+      "targetArn": "arn:aws:sqs:ap-southeast-1:366451245016:vision-sync-video-processing-dlq-dev"
+    },
+    "description": "",
+    "environment": {
+      "variables": {
+        "ECS_CLUSTER": "vision-sync-processing-dev",
+        "ECS_TASK_DEFINITION": "arn:aws:ecs:ap-southeast-1:366451245016:task-definition/vision-sync-video-processing-dev:1",
+        "PROCESSED_BUCKET": "vision-sync-processed-videos-dev",
+        "REGION": "ap-southeast-1",
+        "SECURITY_GROUP_ID": "sg-0605cf2707e5e5845",
+        "SUBNET_IDS": "subnet-0712cb3f6aa83cb15,subnet-0a6ba9bb0f56722f5"
+      }
+    },
+    "ephemeralStorage": {
+      "size": 512
+    },
+    "fileSystemConfig": null,
+    "handler": "index.handler",
+    "id": "vision-sync-ecs-trigger-dev",
+    "imageConfig": null,
+    "imageUri": "",
+    "invokeArn": "arn:aws:apigateway:ap-southeast-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-southeast-1:366451245016:function:vision-sync-ecs-trigger-dev/invocations",
+    "kmsKeyArn": "",
+    "lastModified": "2026-03-11T21:42:12.348+0000",
+    "layers": null,
+    "loggingConfig": {
+      "applicationLogLevel": "",
+      "logFormat": "Text",
+      "logGroup": "/aws/lambda/vision-sync-ecs-trigger-dev",
+      "systemLogLevel": ""
+    },
+    "memorySize": 256,
+    "name": "vision-sync-ecs-trigger-dev",
+    "packageType": "Zip",
+    "publish": false,
+    "qualifiedArn": "arn:aws:lambda:ap-southeast-1:366451245016:function:vision-sync-ecs-trigger-dev:$LATEST",
+    "qualifiedInvokeArn": "arn:aws:apigateway:ap-southeast-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-southeast-1:366451245016:function:vision-sync-ecs-trigger-dev:$LATEST/invocations",
+    "replaceSecurityGroupsOnDestroy": null,
+    "replacementSecurityGroupIds": null,
+    "reservedConcurrentExecutions": -1,
+    "role": "arn:aws:iam::366451245016:role/vision-sync-lambda-execution-role-dev",
+    "runtime": "nodejs18.x",
+    "s3Bucket": null,
+    "s3Key": null,
+    "s3ObjectVersion": null,
+    "signingJobArn": "",
+    "signingProfileVersionArn": "",
+    "skipDestroy": false,
+    "snapStart": null,
+    "sourceCodeHash": "",
+    "sourceCodeSize": 8293643,
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "video-processing-trigger"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "video-processing-trigger"
+    },
+    "timeout": 60,
+    "tracingConfig": {
+      "mode": "PassThrough"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:lambda/function:Function::ecs-task-trigger-with-deps",
+    "version": "$LATEST",
+    "vpcConfig": null
+  },
+  "loadBalancerDnsName": "vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com",
+  "mongodbConnectionString": "mongodb://10.0.1.15:27017,10.0.174.69:27017,10.0.22.130:27017/vision-sync?replicaSet=rs0",
+  "mongodbInstance1": {
+    "ami": "ami-0c1d28734eb221b6d",
+    "arn": "arn:aws:ec2:ap-southeast-1:366451245016:instance/i-0b0548bed41d01638",
+    "associatePublicIpAddress": false,
+    "availabilityZone": "ap-southeast-1a",
+    "capacityReservationSpecification": {
+      "capacityReservationPreference": "open",
+      "capacityReservationTarget": null
+    },
+    "cpuCoreCount": 1,
+    "cpuOptions": {
+      "amdSevSnp": "",
+      "coreCount": 1,
+      "threadsPerCore": 2
+    },
+    "cpuThreadsPerCore": 2,
+    "creditSpecification": {
+      "cpuCredits": "unlimited"
+    },
+    "disableApiStop": false,
+    "disableApiTermination": false,
+    "ebsBlockDevices": [],
+    "ebsOptimized": false,
+    "enablePrimaryIpv6": null,
+    "enclaveOptions": {
+      "enabled": false
+    },
+    "ephemeralBlockDevices": [],
+    "getPasswordData": false,
+    "hibernation": false,
+    "hostId": "",
+    "hostResourceGroupArn": null,
+    "iamInstanceProfile": "",
+    "id": "i-0b0548bed41d01638",
+    "instanceInitiatedShutdownBehavior": "stop",
+    "instanceLifecycle": "",
+    "instanceMarketOptions": null,
+    "instanceState": "running",
+    "instanceType": "t3.small",
+    "ipv6AddressCount": 0,
+    "ipv6Addresses": [],
+    "keyName": "vision-sync-backend-dev",
+    "launchTemplate": null,
+    "maintenanceOptions": {
+      "autoRecovery": "default"
+    },
+    "metadataOptions": {
+      "httpEndpoint": "enabled",
+      "httpProtocolIpv6": "disabled",
+      "httpPutResponseHopLimit": 1,
+      "httpTokens": "optional",
+      "instanceMetadataTags": "disabled"
+    },
+    "monitoring": false,
+    "networkInterfaces": [],
+    "outpostArn": "",
+    "passwordData": "",
+    "placementGroup": "",
+    "placementPartitionNumber": 0,
+    "primaryNetworkInterfaceId": "eni-0c57a210069ea9f55",
+    "privateDns": "ip-10-0-1-15.ap-southeast-1.compute.internal",
+    "privateDnsNameOptions": {
+      "enableResourceNameDnsARecord": false,
+      "enableResourceNameDnsAaaaRecord": false,
+      "hostnameType": "ip-name"
+    },
+    "privateIp": "10.0.1.15",
+    "publicDns": "",
+    "publicIp": "",
+    "rootBlockDevice": {
+      "deleteOnTermination": true,
+      "deviceName": "/dev/sda1",
+      "encrypted": false,
+      "iops": 100,
+      "kmsKeyId": "",
+      "tags": {},
+      "tagsAll": {},
+      "throughput": 0,
+      "volumeId": "vol-019c6f24562db2cba",
+      "volumeSize": 8,
+      "volumeType": "gp2"
+    },
+    "secondaryPrivateIps": [],
+    "securityGroups": [],
+    "sourceDestCheck": true,
+    "spotInstanceRequestId": "",
+    "subnetId": "subnet-0712cb3f6aa83cb15",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-mongodb-1-dev",
+      "Project": "VisionSync",
+      "Role": "mongodb-primary"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-mongodb-1-dev",
+      "Project": "VisionSync",
+      "Role": "mongodb-primary"
+    },
+    "tenancy": "default",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ec2/instance:Instance::mongodb-1",
+    "userData": "8b0ca5d75f50027bae355d2b563e04e1916fa985",
+    "userDataBase64": null,
+    "userDataReplaceOnChange": false,
+    "volumeTags": null,
+    "vpcSecurityGroupIds": [
+      "sg-019dd030c9655701b"
+    ]
+  },
+  "mongodbInstance2": {
+    "ami": "ami-0c1d28734eb221b6d",
+    "arn": "arn:aws:ec2:ap-southeast-1:366451245016:instance/i-0bef03fc71eb8ee14",
+    "associatePublicIpAddress": false,
+    "availabilityZone": "ap-southeast-1b",
+    "capacityReservationSpecification": {
+      "capacityReservationPreference": "open",
+      "capacityReservationTarget": null
+    },
+    "cpuCoreCount": 1,
+    "cpuOptions": {
+      "amdSevSnp": "",
+      "coreCount": 1,
+      "threadsPerCore": 2
+    },
+    "cpuThreadsPerCore": 2,
+    "creditSpecification": {
+      "cpuCredits": "unlimited"
+    },
+    "disableApiStop": false,
+    "disableApiTermination": false,
+    "ebsBlockDevices": [],
+    "ebsOptimized": false,
+    "enablePrimaryIpv6": null,
+    "enclaveOptions": {
+      "enabled": false
+    },
+    "ephemeralBlockDevices": [],
+    "getPasswordData": false,
+    "hibernation": false,
+    "hostId": "",
+    "hostResourceGroupArn": null,
+    "iamInstanceProfile": "",
+    "id": "i-0bef03fc71eb8ee14",
+    "instanceInitiatedShutdownBehavior": "stop",
+    "instanceLifecycle": "",
+    "instanceMarketOptions": null,
+    "instanceState": "running",
+    "instanceType": "t3.small",
+    "ipv6AddressCount": 0,
+    "ipv6Addresses": [],
+    "keyName": "vision-sync-backend-dev",
+    "launchTemplate": null,
+    "maintenanceOptions": {
+      "autoRecovery": "default"
+    },
+    "metadataOptions": {
+      "httpEndpoint": "enabled",
+      "httpProtocolIpv6": "disabled",
+      "httpPutResponseHopLimit": 1,
+      "httpTokens": "optional",
+      "instanceMetadataTags": "disabled"
+    },
+    "monitoring": false,
+    "networkInterfaces": [],
+    "outpostArn": "",
+    "passwordData": "",
+    "placementGroup": "",
+    "placementPartitionNumber": 0,
+    "primaryNetworkInterfaceId": "eni-0613db53048dde9a9",
+    "privateDns": "ip-10-0-174-69.ap-southeast-1.compute.internal",
+    "privateDnsNameOptions": {
+      "enableResourceNameDnsARecord": false,
+      "enableResourceNameDnsAaaaRecord": false,
+      "hostnameType": "ip-name"
+    },
+    "privateIp": "10.0.174.69",
+    "publicDns": "",
+    "publicIp": "",
+    "rootBlockDevice": {
+      "deleteOnTermination": true,
+      "deviceName": "/dev/sda1",
+      "encrypted": false,
+      "iops": 100,
+      "kmsKeyId": "",
+      "tags": {},
+      "tagsAll": {},
+      "throughput": 0,
+      "volumeId": "vol-0e46f0f27cf145c85",
+      "volumeSize": 8,
+      "volumeType": "gp2"
+    },
+    "secondaryPrivateIps": [],
+    "securityGroups": [],
+    "sourceDestCheck": true,
+    "spotInstanceRequestId": "",
+    "subnetId": "subnet-0a6ba9bb0f56722f5",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-mongodb-2-dev",
+      "Project": "VisionSync",
+      "Role": "mongodb-secondary"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-mongodb-2-dev",
+      "Project": "VisionSync",
+      "Role": "mongodb-secondary"
+    },
+    "tenancy": "default",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ec2/instance:Instance::mongodb-2",
+    "userData": "8b0ca5d75f50027bae355d2b563e04e1916fa985",
+    "userDataBase64": null,
+    "userDataReplaceOnChange": false,
+    "volumeTags": null,
+    "vpcSecurityGroupIds": [
+      "sg-019dd030c9655701b"
+    ]
+  },
+  "mongodbInstance3": {
+    "ami": "ami-0c1d28734eb221b6d",
+    "arn": "arn:aws:ec2:ap-southeast-1:366451245016:instance/i-0d4e891824d4b7480",
+    "associatePublicIpAddress": false,
+    "availabilityZone": "ap-southeast-1a",
+    "capacityReservationSpecification": {
+      "capacityReservationPreference": "open",
+      "capacityReservationTarget": null
+    },
+    "cpuCoreCount": 1,
+    "cpuOptions": {
+      "amdSevSnp": "",
+      "coreCount": 1,
+      "threadsPerCore": 2
+    },
+    "cpuThreadsPerCore": 2,
+    "creditSpecification": {
+      "cpuCredits": "unlimited"
+    },
+    "disableApiStop": false,
+    "disableApiTermination": false,
+    "ebsBlockDevices": [],
+    "ebsOptimized": false,
+    "enablePrimaryIpv6": null,
+    "enclaveOptions": {
+      "enabled": false
+    },
+    "ephemeralBlockDevices": [],
+    "getPasswordData": false,
+    "hibernation": false,
+    "hostId": "",
+    "hostResourceGroupArn": null,
+    "iamInstanceProfile": "",
+    "id": "i-0d4e891824d4b7480",
+    "instanceInitiatedShutdownBehavior": "stop",
+    "instanceLifecycle": "",
+    "instanceMarketOptions": null,
+    "instanceState": "running",
+    "instanceType": "t3.small",
+    "ipv6AddressCount": 0,
+    "ipv6Addresses": [],
+    "keyName": "vision-sync-backend-dev",
+    "launchTemplate": null,
+    "maintenanceOptions": {
+      "autoRecovery": "default"
+    },
+    "metadataOptions": {
+      "httpEndpoint": "enabled",
+      "httpProtocolIpv6": "disabled",
+      "httpPutResponseHopLimit": 1,
+      "httpTokens": "optional",
+      "instanceMetadataTags": "disabled"
+    },
+    "monitoring": false,
+    "networkInterfaces": [],
+    "outpostArn": "",
+    "passwordData": "",
+    "placementGroup": "",
+    "placementPartitionNumber": 0,
+    "primaryNetworkInterfaceId": "eni-0366ac9652d1d11e6",
+    "privateDns": "ip-10-0-22-130.ap-southeast-1.compute.internal",
+    "privateDnsNameOptions": {
+      "enableResourceNameDnsARecord": false,
+      "enableResourceNameDnsAaaaRecord": false,
+      "hostnameType": "ip-name"
+    },
+    "privateIp": "10.0.22.130",
+    "publicDns": "",
+    "publicIp": "",
+    "rootBlockDevice": {
+      "deleteOnTermination": true,
+      "deviceName": "/dev/sda1",
+      "encrypted": false,
+      "iops": 100,
+      "kmsKeyId": "",
+      "tags": {},
+      "tagsAll": {},
+      "throughput": 0,
+      "volumeId": "vol-083d8b1ed1bd35fdf",
+      "volumeSize": 8,
+      "volumeType": "gp2"
+    },
+    "secondaryPrivateIps": [],
+    "securityGroups": [],
+    "sourceDestCheck": true,
+    "spotInstanceRequestId": "",
+    "subnetId": "subnet-0712cb3f6aa83cb15",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-mongodb-3-dev",
+      "Project": "VisionSync",
+      "Role": "mongodb-secondary"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-mongodb-3-dev",
+      "Project": "VisionSync",
+      "Role": "mongodb-secondary"
+    },
+    "tenancy": "default",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ec2/instance:Instance::mongodb-3",
+    "userData": "8b0ca5d75f50027bae355d2b563e04e1916fa985",
+    "userDataBase64": null,
+    "userDataReplaceOnChange": false,
+    "volumeTags": null,
+    "vpcSecurityGroupIds": [
+      "sg-019dd030c9655701b"
+    ]
+  },
+  "mongodbNodes": {
+    "primary": "10.0.1.15",
+    "secondary1": "10.0.174.69",
+    "secondary2": "10.0.22.130"
+  },
+  "processedVideosBucket": {
+    "accelerationStatus": "",
+    "acl": "private",
+    "arn": "arn:aws:s3:::vision-sync-processed-videos-dev",
+    "bucket": "vision-sync-processed-videos-dev",
+    "bucketDomainName": "vision-sync-processed-videos-dev.s3.amazonaws.com",
+    "bucketPrefix": null,
+    "bucketRegionalDomainName": "vision-sync-processed-videos-dev.s3.ap-southeast-1.amazonaws.com",
+    "corsRules": [],
+    "forceDestroy": false,
+    "grants": [],
+    "hostedZoneId": "Z3O0J2DXBE1FTB",
+    "id": "vision-sync-processed-videos-dev",
+    "lifecycleRules": [],
+    "loggings": [],
+    "objectLockConfiguration": null,
+    "policy": null,
+    "region": "ap-southeast-1",
+    "replicationConfiguration": null,
+    "requestPayer": "BucketOwner",
+    "serverSideEncryptionConfiguration": {
+      "rule": {
+        "applyServerSideEncryptionByDefault": {
+          "kmsMasterKeyId": "",
+          "sseAlgorithm": "AES256"
+        },
+        "bucketKeyEnabled": false
+      }
+    },
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "processed-video-storage"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "processed-video-storage"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:s3/bucket:Bucket::processed-videos",
+    "versioning": {
+      "enabled": false,
+      "mfaDelete": false
+    },
+    "website": null,
+    "websiteDomain": null,
+    "websiteEndpoint": null
+  },
+  "rawVideosBucket": {
+    "accelerationStatus": "",
+    "acl": "private",
+    "arn": "arn:aws:s3:::vision-sync-raw-videos-dev",
+    "bucket": "vision-sync-raw-videos-dev",
+    "bucketDomainName": "vision-sync-raw-videos-dev.s3.amazonaws.com",
+    "bucketPrefix": null,
+    "bucketRegionalDomainName": "vision-sync-raw-videos-dev.s3.ap-southeast-1.amazonaws.com",
+    "corsRules": [],
+    "forceDestroy": false,
+    "grants": [],
+    "hostedZoneId": "Z3O0J2DXBE1FTB",
+    "id": "vision-sync-raw-videos-dev",
+    "lifecycleRules": [],
+    "loggings": [],
+    "objectLockConfiguration": null,
+    "policy": null,
+    "region": "ap-southeast-1",
+    "replicationConfiguration": null,
+    "requestPayer": "BucketOwner",
+    "serverSideEncryptionConfiguration": {
+      "rule": {
+        "applyServerSideEncryptionByDefault": {
+          "kmsMasterKeyId": "",
+          "sseAlgorithm": "AES256"
+        },
+        "bucketKeyEnabled": false
+      }
+    },
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "raw-video-storage"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "raw-video-storage"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:s3/bucket:Bucket::raw-videos",
+    "versioning": {
+      "enabled": false,
+      "mfaDelete": false
+    },
+    "website": null,
+    "websiteDomain": null,
+    "websiteEndpoint": null
+  },
+  "redisCluster": {
+    "ami": "ami-0c1d28734eb221b6d",
+    "arn": "arn:aws:ec2:ap-southeast-1:366451245016:instance/i-08f79444832a2e8e4",
+    "associatePublicIpAddress": false,
+    "availabilityZone": "ap-southeast-1a",
+    "capacityReservationSpecification": {
+      "capacityReservationPreference": "open",
+      "capacityReservationTarget": null
+    },
+    "cpuCoreCount": 1,
+    "cpuOptions": {
+      "amdSevSnp": "",
+      "coreCount": 1,
+      "threadsPerCore": 2
+    },
+    "cpuThreadsPerCore": 2,
+    "creditSpecification": {
+      "cpuCredits": "unlimited"
+    },
+    "disableApiStop": false,
+    "disableApiTermination": false,
+    "ebsBlockDevices": [],
+    "ebsOptimized": false,
+    "enablePrimaryIpv6": null,
+    "enclaveOptions": {
+      "enabled": false
+    },
+    "ephemeralBlockDevices": [],
+    "getPasswordData": false,
+    "hibernation": false,
+    "hostId": "",
+    "hostResourceGroupArn": null,
+    "iamInstanceProfile": "",
+    "id": "i-08f79444832a2e8e4",
+    "instanceInitiatedShutdownBehavior": "stop",
+    "instanceLifecycle": "",
+    "instanceMarketOptions": null,
+    "instanceState": "running",
+    "instanceType": "t3.micro",
+    "ipv6AddressCount": 0,
+    "ipv6Addresses": [],
+    "keyName": "vision-sync-backend-dev",
+    "launchTemplate": null,
+    "maintenanceOptions": {
+      "autoRecovery": "default"
+    },
+    "metadataOptions": {
+      "httpEndpoint": "enabled",
+      "httpProtocolIpv6": "disabled",
+      "httpPutResponseHopLimit": 1,
+      "httpTokens": "optional",
+      "instanceMetadataTags": "disabled"
+    },
+    "monitoring": false,
+    "networkInterfaces": [],
+    "outpostArn": "",
+    "passwordData": "",
+    "placementGroup": "",
+    "placementPartitionNumber": 0,
+    "primaryNetworkInterfaceId": "eni-03d8e11974a4a99a0",
+    "privateDns": "ip-10-0-35-200.ap-southeast-1.compute.internal",
+    "privateDnsNameOptions": {
+      "enableResourceNameDnsARecord": false,
+      "enableResourceNameDnsAaaaRecord": false,
+      "hostnameType": "ip-name"
+    },
+    "privateIp": "10.0.35.200",
+    "publicDns": "",
+    "publicIp": "",
+    "rootBlockDevice": {
+      "deleteOnTermination": true,
+      "deviceName": "/dev/sda1",
+      "encrypted": true,
+      "iops": 3000,
+      "kmsKeyId": "arn:aws:kms:ap-southeast-1:366451245016:key/8f9e324e-58ac-4b95-84d1-f17c42a5c61d",
+      "tags": null,
+      "tagsAll": {},
+      "throughput": 125,
+      "volumeId": "vol-02f3551b416996ee8",
+      "volumeSize": 10,
+      "volumeType": "gp3"
+    },
+    "secondaryPrivateIps": [],
+    "securityGroups": [],
+    "sourceDestCheck": true,
+    "spotInstanceRequestId": "",
+    "subnetId": "subnet-0712cb3f6aa83cb15",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-redis-dev",
+      "Project": "VisionSync",
+      "Purpose": "caching-rate-limiting"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-redis-dev",
+      "Project": "VisionSync",
+      "Purpose": "caching-rate-limiting"
+    },
+    "tenancy": "default",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ec2/instance:Instance::redis-instance",
+    "userData": "a3c50f2b5bde96b9fe36629a1553c362ce8f40a0",
+    "userDataBase64": null,
+    "userDataReplaceOnChange": false,
+    "volumeTags": null,
+    "vpcSecurityGroupIds": [
+      "sg-01ae7ce610e905dfa"
+    ]
+  },
+  "redisConfig": {
+    "maxMemory": "256mb",
+    "maxMemoryPolicy": "allkeys-lru",
+    "password": "VisionSyncRedis2024!",
+    "persistence": true
+  },
+  "redisEndpoint": "10.0.35.200",
+  "redisInstance": {
+    "ami": "ami-0c1d28734eb221b6d",
+    "arn": "arn:aws:ec2:ap-southeast-1:366451245016:instance/i-08f79444832a2e8e4",
+    "associatePublicIpAddress": false,
+    "availabilityZone": "ap-southeast-1a",
+    "capacityReservationSpecification": {
+      "capacityReservationPreference": "open",
+      "capacityReservationTarget": null
+    },
+    "cpuCoreCount": 1,
+    "cpuOptions": {
+      "amdSevSnp": "",
+      "coreCount": 1,
+      "threadsPerCore": 2
+    },
+    "cpuThreadsPerCore": 2,
+    "creditSpecification": {
+      "cpuCredits": "unlimited"
+    },
+    "disableApiStop": false,
+    "disableApiTermination": false,
+    "ebsBlockDevices": [],
+    "ebsOptimized": false,
+    "enablePrimaryIpv6": null,
+    "enclaveOptions": {
+      "enabled": false
+    },
+    "ephemeralBlockDevices": [],
+    "getPasswordData": false,
+    "hibernation": false,
+    "hostId": "",
+    "hostResourceGroupArn": null,
+    "iamInstanceProfile": "",
+    "id": "i-08f79444832a2e8e4",
+    "instanceInitiatedShutdownBehavior": "stop",
+    "instanceLifecycle": "",
+    "instanceMarketOptions": null,
+    "instanceState": "running",
+    "instanceType": "t3.micro",
+    "ipv6AddressCount": 0,
+    "ipv6Addresses": [],
+    "keyName": "vision-sync-backend-dev",
+    "launchTemplate": null,
+    "maintenanceOptions": {
+      "autoRecovery": "default"
+    },
+    "metadataOptions": {
+      "httpEndpoint": "enabled",
+      "httpProtocolIpv6": "disabled",
+      "httpPutResponseHopLimit": 1,
+      "httpTokens": "optional",
+      "instanceMetadataTags": "disabled"
+    },
+    "monitoring": false,
+    "networkInterfaces": [],
+    "outpostArn": "",
+    "passwordData": "",
+    "placementGroup": "",
+    "placementPartitionNumber": 0,
+    "primaryNetworkInterfaceId": "eni-03d8e11974a4a99a0",
+    "privateDns": "ip-10-0-35-200.ap-southeast-1.compute.internal",
+    "privateDnsNameOptions": {
+      "enableResourceNameDnsARecord": false,
+      "enableResourceNameDnsAaaaRecord": false,
+      "hostnameType": "ip-name"
+    },
+    "privateIp": "10.0.35.200",
+    "publicDns": "",
+    "publicIp": "",
+    "rootBlockDevice": {
+      "deleteOnTermination": true,
+      "deviceName": "/dev/sda1",
+      "encrypted": true,
+      "iops": 3000,
+      "kmsKeyId": "arn:aws:kms:ap-southeast-1:366451245016:key/8f9e324e-58ac-4b95-84d1-f17c42a5c61d",
+      "tags": null,
+      "tagsAll": {},
+      "throughput": 125,
+      "volumeId": "vol-02f3551b416996ee8",
+      "volumeSize": 10,
+      "volumeType": "gp3"
+    },
+    "secondaryPrivateIps": [],
+    "securityGroups": [],
+    "sourceDestCheck": true,
+    "spotInstanceRequestId": "",
+    "subnetId": "subnet-0712cb3f6aa83cb15",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-redis-dev",
+      "Project": "VisionSync",
+      "Purpose": "caching-rate-limiting"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-redis-dev",
+      "Project": "VisionSync",
+      "Purpose": "caching-rate-limiting"
+    },
+    "tenancy": "default",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ec2/instance:Instance::redis-instance",
+    "userData": "a3c50f2b5bde96b9fe36629a1553c362ce8f40a0",
+    "userDataBase64": null,
+    "userDataReplaceOnChange": false,
+    "volumeTags": null,
+    "vpcSecurityGroupIds": [
+      "sg-01ae7ce610e905dfa"
+    ]
+  },
+  "redisPort": 6379,
+  "region": {
+    "description": "Asia Pacific (Singapore)",
+    "endpoint": "ec2.ap-southeast-1.amazonaws.com",
+    "id": "ap-southeast-1",
+    "name": "ap-southeast-1"
+  },
+  "serverEcrRepository": {
+    "arn": "arn:aws:ecr:ap-southeast-1:366451245016:repository/vision-sync-server-dev",
+    "encryptionConfigurations": [
+      {
+        "encryptionType": "AES256",
+        "kmsKey": ""
+      }
+    ],
+    "forceDelete": null,
+    "id": "vision-sync-server-dev",
+    "imageScanningConfiguration": {
+      "scanOnPush": true
+    },
+    "imageTagMutability": "MUTABLE",
+    "name": "vision-sync-server-dev",
+    "registryId": "366451245016",
+    "repositoryUrl": "366451245016.dkr.ecr.ap-southeast-1.amazonaws.com/vision-sync-server-dev",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "server-backend-container"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "server-backend-container"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:ecr/repository:Repository::server-repo"
+  },
+  "sqsEventSourceMapping": {
+    "amazonManagedKafkaEventSourceConfig": null,
+    "arn": "arn:aws:lambda:ap-southeast-1:366451245016:event-source-mapping:8573bd8a-62d8-425f-85da-d778c8aba34c",
+    "batchSize": 1,
+    "bisectBatchOnFunctionError": false,
+    "destinationConfig": null,
+    "documentDbEventSourceConfig": null,
+    "enabled": true,
+    "eventSourceArn": "arn:aws:sqs:ap-southeast-1:366451245016:vision-sync-video-processing-dev",
+    "filterCriteria": null,
+    "functionArn": "arn:aws:lambda:ap-southeast-1:366451245016:function:vision-sync-ecs-trigger-dev",
+    "functionName": "arn:aws:lambda:ap-southeast-1:366451245016:function:vision-sync-ecs-trigger-dev",
+    "functionResponseTypes": [
+      "ReportBatchItemFailures"
+    ],
+    "id": "8573bd8a-62d8-425f-85da-d778c8aba34c",
+    "kmsKeyArn": "",
+    "lastModified": "2026-03-11T21:42:19Z",
+    "lastProcessingResult": "",
+    "maximumBatchingWindowInSeconds": 5,
+    "maximumRecordAgeInSeconds": 0,
+    "maximumRetryAttempts": 0,
+    "metricsConfig": null,
+    "parallelizationFactor": 0,
+    "provisionedPollerConfig": null,
+    "queues": null,
+    "scalingConfig": null,
+    "selfManagedEventSource": null,
+    "selfManagedKafkaEventSourceConfig": null,
+    "sourceAccessConfigurations": [],
+    "startingPosition": "",
+    "startingPositionTimestamp": "",
+    "state": "Enabled",
+    "stateTransitionReason": "USER_INITIATED",
+    "topics": null,
+    "tumblingWindowInSeconds": 0,
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:lambda/eventSourceMapping:EventSourceMapping::sqs-lambda-trigger",
+    "uuid": "8573bd8a-62d8-425f-85da-d778c8aba34c"
+  },
+  "sqsInvokeLambdaPermission": {
+    "action": "lambda:InvokeFunction",
+    "eventSourceToken": null,
+    "function": "vision-sync-ecs-trigger-dev",
+    "functionUrlAuthType": null,
+    "id": "sqs-invoke-lambda-5ef5dcc",
+    "principal": "sqs.amazonaws.com",
+    "principalOrgId": null,
+    "qualifier": "",
+    "sourceAccount": null,
+    "sourceArn": "arn:aws:sqs:ap-southeast-1:366451245016:vision-sync-video-processing-dev",
+    "statementId": "sqs-invoke-lambda-5ef5dcc",
+    "statementIdPrefix": "",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:lambda/permission:Permission::sqs-invoke-lambda"
+  },
+  "sqsQueueDepthAlarm": {
+    "actionsEnabled": true,
+    "alarmActions": null,
+    "alarmDescription": "SQS queue depth is too high",
+    "arn": "arn:aws:cloudwatch:ap-southeast-1:366451245016:alarm:vision-sync-sqs-depth-dev",
+    "comparisonOperator": "GreaterThanThreshold",
+    "datapointsToAlarm": 0,
+    "dimensions": {
+      "QueueName": "vision-sync-video-processing-dev"
+    },
+    "evaluateLowSampleCountPercentiles": "",
+    "evaluationPeriods": 3,
+    "extendedStatistic": "",
+    "id": "vision-sync-sqs-depth-dev",
+    "insufficientDataActions": null,
+    "metricName": "ApproximateNumberOfVisibleMessages",
+    "metricQueries": [],
+    "name": "vision-sync-sqs-depth-dev",
+    "namespace": "AWS/SQS",
+    "okActions": null,
+    "period": 300,
+    "statistic": "Average",
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "monitoring"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "monitoring"
+    },
+    "threshold": 10,
+    "thresholdMetricId": "",
+    "treatMissingData": "missing",
+    "unit": "",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:cloudwatch/metricAlarm:MetricAlarm::sqs-queue-depth-alarm"
+  },
+  "stackName": "dev",
+  "userData": "#!/bin/bash\nset -e\napt-get update\napt-get install -y docker.io awscli python3 python3-pip\n\n# Install Ansible\npip3 install ansible\n\nsystemctl start docker\nsystemctl enable docker\nusermod -aG docker ubuntu\n\n# Install Docker Compose\ncurl -L \"https://github.com/docker/compose/releases/download/v2.20.0/docker-compose-$(uname -s)-$(uname -m)\" -o /usr/local/bin/docker-compose\nchmod +x /usr/local/bin/docker-compose\n\n# Create app directory\nmkdir -p /opt/vision-sync\nchown ubuntu:ubuntu /opt/vision-sync\n\n# Create ansible user for automation\nuseradd -m -s /bin/bash ansible\nmkdir -p /home/ansible/.ssh\nchown ansible:ansible /home/ansible/.ssh\nchmod 700 /home/ansible/.ssh\n\n# Add ansible to sudoers\necho \"ansible ALL=(ALL) NOPASSWD:ALL\" >> /etc/sudoers\n\necho \"Backend instance ready - Ansible configuration will be added later\"\n",
+  "videoProcessingDLQ": {
+    "arn": "arn:aws:sqs:ap-southeast-1:366451245016:vision-sync-video-processing-dlq-dev",
+    "contentBasedDeduplication": false,
+    "deduplicationScope": "",
+    "delaySeconds": 0,
+    "fifoQueue": false,
+    "fifoThroughputLimit": "",
+    "id": "https://sqs.ap-southeast-1.amazonaws.com/366451245016/vision-sync-video-processing-dlq-dev",
+    "kmsDataKeyReusePeriodSeconds": 300,
+    "kmsMasterKeyId": "",
+    "maxMessageSize": 262144,
+    "messageRetentionSeconds": 1209600,
+    "name": "vision-sync-video-processing-dlq-dev",
+    "namePrefix": "",
+    "policy": "",
+    "receiveWaitTimeSeconds": 0,
+    "redriveAllowPolicy": "",
+    "redrivePolicy": "",
+    "sqsManagedSseEnabled": true,
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "video-processing-dlq"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "video-processing-dlq"
+    },
+    "url": "https://sqs.ap-southeast-1.amazonaws.com/366451245016/vision-sync-video-processing-dlq-dev",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:sqs/queue:Queue::video-processing-dlq",
+    "visibilityTimeoutSeconds": 30
+  },
+  "videoProcessingQueue": {
+    "arn": "arn:aws:sqs:ap-southeast-1:366451245016:vision-sync-video-processing-dev",
+    "contentBasedDeduplication": false,
+    "deduplicationScope": "",
+    "delaySeconds": 0,
+    "fifoQueue": false,
+    "fifoThroughputLimit": "",
+    "id": "https://sqs.ap-southeast-1.amazonaws.com/366451245016/vision-sync-video-processing-dev",
+    "kmsDataKeyReusePeriodSeconds": 300,
+    "kmsMasterKeyId": "",
+    "maxMessageSize": 262144,
+    "messageRetentionSeconds": 1209600,
+    "name": "vision-sync-video-processing-dev",
+    "namePrefix": "",
+    "policy": "",
+    "receiveWaitTimeSeconds": 20,
+    "redriveAllowPolicy": "",
+    "redrivePolicy": "{\"deadLetterTargetArn\":\"arn:aws:sqs:ap-southeast-1:366451245016:vision-sync-video-processing-dlq-dev\",\"maxReceiveCount\":3}",
+    "sqsManagedSseEnabled": true,
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "video-processing-queue"
+    },
+    "tagsAll": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Project": "VisionSync",
+      "Purpose": "video-processing-queue"
+    },
+    "url": "https://sqs.ap-southeast-1.amazonaws.com/366451245016/vision-sync-video-processing-dev",
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::aws:sqs/queue:Queue::video-processing-queue",
+    "visibilityTimeoutSeconds": 960
+  },
+  "vpc": {
+    "eips": [
+      {
+        "address": null,
+        "allocationId": "eipalloc-086d7188f9ffe8c52",
+        "arn": "arn:aws:ec2:ap-southeast-1:366451245016:elastic-ip/eipalloc-086d7188f9ffe8c52",
+        "associateWithPrivateIp": null,
+        "associationId": "",
+        "carrierIp": "",
+        "customerOwnedIp": "",
+        "customerOwnedIpv4Pool": "",
+        "domain": "vpc",
+        "id": "eipalloc-086d7188f9ffe8c52",
+        "instance": "",
+        "ipamPoolId": null,
+        "networkBorderGroup": "ap-southeast-1",
+        "networkInterface": "",
+        "privateDns": null,
+        "privateIp": "",
+        "ptrRecord": "",
+        "publicDns": "ec2-52-76-46-106.ap-southeast-1.compute.amazonaws.com",
+        "publicIp": "52.76.46.106",
+        "publicIpv4Pool": "amazon",
+        "tags": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-1",
+          "Project": "VisionSync"
+        },
+        "tagsAll": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-1",
+          "Project": "VisionSync"
+        },
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet$aws:ec2/eip:Eip::vision-sync-vpc-1",
+        "vpc": true
+      }
+    ],
+    "enableDnsHostnames": true,
+    "enableDnsSupport": true,
+    "internetGateway": {
+      "arn": "arn:aws:ec2:ap-southeast-1:366451245016:internet-gateway/igw-026dcb682cb4936a7",
+      "id": "igw-026dcb682cb4936a7",
+      "ownerId": "366451245016",
+      "tags": {
+        "Environment": "dev",
+        "ManagedBy": "Pulumi",
+        "Name": "vision-sync-vpc",
+        "Project": "VisionSync"
+      },
+      "tagsAll": {
+        "Environment": "dev",
+        "ManagedBy": "Pulumi",
+        "Name": "vision-sync-vpc",
+        "Project": "VisionSync"
+      },
+      "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/internetGateway:InternetGateway::vision-sync-vpc",
+      "vpcId": "vpc-0df1ecaaa12a5dd23"
+    },
+    "isolatedSubnetIds": [],
+    "natGateways": [
+      {
+        "allocationId": "eipalloc-086d7188f9ffe8c52",
+        "associationId": "eipassoc-0f5fa37e78323ec8a",
+        "connectivityType": "public",
+        "id": "nat-0afcab7cf6b166d1a",
+        "networkInterfaceId": "eni-040aaedaf0cee0ca1",
+        "privateIp": "10.0.80.210",
+        "publicIp": "52.76.46.106",
+        "secondaryAllocationIds": null,
+        "secondaryPrivateIpAddressCount": 0,
+        "secondaryPrivateIpAddresses": [],
+        "subnetId": "subnet-03ad1cbb476fe8b7c",
+        "tags": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-1",
+          "Project": "VisionSync"
+        },
+        "tagsAll": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-1",
+          "Project": "VisionSync"
+        },
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet$aws:ec2/natGateway:NatGateway::vision-sync-vpc-1"
+      }
+    ],
+    "numberOfAvailabilityZones": 2,
+    "privateSubnetIds": [
+      "subnet-0712cb3f6aa83cb15",
+      "subnet-0a6ba9bb0f56722f5"
+    ],
+    "publicSubnetIds": [
+      "subnet-03ad1cbb476fe8b7c",
+      "subnet-010e5ac21cd8c0126"
+    ],
+    "routeTableAssociations": [
+      {
+        "gatewayId": "",
+        "id": "rtbassoc-0f5a16dd8888af17a",
+        "routeTableId": "rtb-0145366196f080681",
+        "subnetId": "subnet-03ad1cbb476fe8b7c",
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet$aws:ec2/routeTable:RouteTable$aws:ec2/routeTableAssociation:RouteTableAssociation::vision-sync-vpc-public-1"
+      },
+      {
+        "gatewayId": "",
+        "id": "rtbassoc-0d9319bebcbe06701",
+        "routeTableId": "rtb-0d3745871548af681",
+        "subnetId": "subnet-0712cb3f6aa83cb15",
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet$aws:ec2/routeTable:RouteTable$aws:ec2/routeTableAssociation:RouteTableAssociation::vision-sync-vpc-private-1"
+      },
+      {
+        "gatewayId": "",
+        "id": "rtbassoc-09dcdb7a345a4ff4d",
+        "routeTableId": "rtb-0ea5b9c268bea2d9e",
+        "subnetId": "subnet-010e5ac21cd8c0126",
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet$aws:ec2/routeTable:RouteTable$aws:ec2/routeTableAssociation:RouteTableAssociation::vision-sync-vpc-public-2"
+      },
+      {
+        "gatewayId": "",
+        "id": "rtbassoc-0717488d9dbad8a3d",
+        "routeTableId": "rtb-02e37d2f832102bb4",
+        "subnetId": "subnet-0a6ba9bb0f56722f5",
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet$aws:ec2/routeTable:RouteTable$aws:ec2/routeTableAssociation:RouteTableAssociation::vision-sync-vpc-private-2"
+      }
+    ],
+    "routeTables": [
+      {
+        "arn": "arn:aws:ec2:ap-southeast-1:366451245016:route-table/rtb-0145366196f080681",
+        "id": "rtb-0145366196f080681",
+        "ownerId": "366451245016",
+        "propagatingVgws": [],
+        "routes": [],
+        "tags": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-public-1",
+          "Project": "VisionSync",
+          "SubnetType": "Public"
+        },
+        "tagsAll": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-public-1",
+          "Project": "VisionSync",
+          "SubnetType": "Public"
+        },
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet$aws:ec2/routeTable:RouteTable::vision-sync-vpc-public-1",
+        "vpcId": "vpc-0df1ecaaa12a5dd23"
+      },
+      {
+        "arn": "arn:aws:ec2:ap-southeast-1:366451245016:route-table/rtb-0d3745871548af681",
+        "id": "rtb-0d3745871548af681",
+        "ownerId": "366451245016",
+        "propagatingVgws": [],
+        "routes": [],
+        "tags": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-private-1",
+          "Project": "VisionSync",
+          "SubnetType": "Private"
+        },
+        "tagsAll": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-private-1",
+          "Project": "VisionSync",
+          "SubnetType": "Private"
+        },
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet$aws:ec2/routeTable:RouteTable::vision-sync-vpc-private-1",
+        "vpcId": "vpc-0df1ecaaa12a5dd23"
+      },
+      {
+        "arn": "arn:aws:ec2:ap-southeast-1:366451245016:route-table/rtb-0ea5b9c268bea2d9e",
+        "id": "rtb-0ea5b9c268bea2d9e",
+        "ownerId": "366451245016",
+        "propagatingVgws": [],
+        "routes": [],
+        "tags": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-public-2",
+          "Project": "VisionSync",
+          "SubnetType": "Public"
+        },
+        "tagsAll": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-public-2",
+          "Project": "VisionSync",
+          "SubnetType": "Public"
+        },
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet$aws:ec2/routeTable:RouteTable::vision-sync-vpc-public-2",
+        "vpcId": "vpc-0df1ecaaa12a5dd23"
+      },
+      {
+        "arn": "arn:aws:ec2:ap-southeast-1:366451245016:route-table/rtb-02e37d2f832102bb4",
+        "id": "rtb-02e37d2f832102bb4",
+        "ownerId": "366451245016",
+        "propagatingVgws": [],
+        "routes": [],
+        "tags": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-private-2",
+          "Project": "VisionSync",
+          "SubnetType": "Private"
+        },
+        "tagsAll": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-private-2",
+          "Project": "VisionSync",
+          "SubnetType": "Private"
+        },
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet$aws:ec2/routeTable:RouteTable::vision-sync-vpc-private-2",
+        "vpcId": "vpc-0df1ecaaa12a5dd23"
+      }
+    ],
+    "routes": [
+      {
+        "carrierGatewayId": "",
+        "coreNetworkArn": "",
+        "destinationCidrBlock": "0.0.0.0/0",
+        "destinationIpv6CidrBlock": "",
+        "destinationPrefixListId": "",
+        "egressOnlyGatewayId": "",
+        "gatewayId": "igw-026dcb682cb4936a7",
+        "id": "r-rtb-0145366196f0806811080289494",
+        "instanceId": "",
+        "instanceOwnerId": "",
+        "localGatewayId": "",
+        "natGatewayId": "",
+        "networkInterfaceId": "",
+        "origin": "CreateRoute",
+        "routeTableId": "rtb-0145366196f080681",
+        "state": "active",
+        "transitGatewayId": "",
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet$aws:ec2/routeTable:RouteTable$aws:ec2/route:Route::vision-sync-vpc-public-1",
+        "vpcEndpointId": "",
+        "vpcPeeringConnectionId": ""
+      },
+      {
+        "carrierGatewayId": "",
+        "coreNetworkArn": "",
+        "destinationCidrBlock": "0.0.0.0/0",
+        "destinationIpv6CidrBlock": "",
+        "destinationPrefixListId": "",
+        "egressOnlyGatewayId": "",
+        "gatewayId": "",
+        "id": "r-rtb-0d3745871548af6811080289494",
+        "instanceId": "",
+        "instanceOwnerId": "",
+        "localGatewayId": "",
+        "natGatewayId": "nat-0afcab7cf6b166d1a",
+        "networkInterfaceId": "",
+        "origin": "CreateRoute",
+        "routeTableId": "rtb-0d3745871548af681",
+        "state": "active",
+        "transitGatewayId": "",
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet$aws:ec2/routeTable:RouteTable$aws:ec2/route:Route::vision-sync-vpc-private-1",
+        "vpcEndpointId": "",
+        "vpcPeeringConnectionId": ""
+      },
+      {
+        "carrierGatewayId": "",
+        "coreNetworkArn": "",
+        "destinationCidrBlock": "0.0.0.0/0",
+        "destinationIpv6CidrBlock": "",
+        "destinationPrefixListId": "",
+        "egressOnlyGatewayId": "",
+        "gatewayId": "igw-026dcb682cb4936a7",
+        "id": "r-rtb-0ea5b9c268bea2d9e1080289494",
+        "instanceId": "",
+        "instanceOwnerId": "",
+        "localGatewayId": "",
+        "natGatewayId": "",
+        "networkInterfaceId": "",
+        "origin": "CreateRoute",
+        "routeTableId": "rtb-0ea5b9c268bea2d9e",
+        "state": "active",
+        "transitGatewayId": "",
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet$aws:ec2/routeTable:RouteTable$aws:ec2/route:Route::vision-sync-vpc-public-2",
+        "vpcEndpointId": "",
+        "vpcPeeringConnectionId": ""
+      },
+      {
+        "carrierGatewayId": "",
+        "coreNetworkArn": "",
+        "destinationCidrBlock": "0.0.0.0/0",
+        "destinationIpv6CidrBlock": "",
+        "destinationPrefixListId": "",
+        "egressOnlyGatewayId": "",
+        "gatewayId": "",
+        "id": "r-rtb-02e37d2f832102bb41080289494",
+        "instanceId": "",
+        "instanceOwnerId": "",
+        "localGatewayId": "",
+        "natGatewayId": "nat-0afcab7cf6b166d1a",
+        "networkInterfaceId": "",
+        "origin": "CreateRoute",
+        "routeTableId": "rtb-02e37d2f832102bb4",
+        "state": "active",
+        "transitGatewayId": "",
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet$aws:ec2/routeTable:RouteTable$aws:ec2/route:Route::vision-sync-vpc-private-2",
+        "vpcEndpointId": "",
+        "vpcPeeringConnectionId": ""
+      }
+    ],
+    "subnetLayout": [
+      {
+        "cidrMask": 18,
+        "type": "Private"
+      },
+      {
+        "cidrMask": 18,
+        "type": "Unused"
+      },
+      {
+        "cidrMask": 18,
+        "type": "Private"
+      }
+    ],
+    "subnets": [
+      {
+        "arn": "arn:aws:ec2:ap-southeast-1:366451245016:subnet/subnet-03ad1cbb476fe8b7c",
+        "assignIpv6AddressOnCreation": false,
+        "availabilityZone": "ap-southeast-1a",
+        "availabilityZoneId": "apse1-az2",
+        "cidrBlock": "10.0.64.0/19",
+        "customerOwnedIpv4Pool": "",
+        "enableDns64": false,
+        "enableLniAtDeviceIndex": 0,
+        "enableResourceNameDnsARecordOnLaunch": false,
+        "enableResourceNameDnsAaaaRecordOnLaunch": false,
+        "id": "subnet-03ad1cbb476fe8b7c",
+        "ipv6CidrBlock": "",
+        "ipv6CidrBlockAssociationId": "",
+        "ipv6Native": false,
+        "mapCustomerOwnedIpOnLaunch": false,
+        "mapPublicIpOnLaunch": true,
+        "outpostArn": "",
+        "ownerId": "366451245016",
+        "privateDnsHostnameTypeOnLaunch": "ip-name",
+        "tags": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-public-1",
+          "Project": "VisionSync",
+          "SubnetType": "Public"
+        },
+        "tagsAll": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-public-1",
+          "Project": "VisionSync",
+          "SubnetType": "Public"
+        },
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet::vision-sync-vpc-public-1",
+        "vpcId": "vpc-0df1ecaaa12a5dd23"
+      },
+      {
+        "arn": "arn:aws:ec2:ap-southeast-1:366451245016:subnet/subnet-0712cb3f6aa83cb15",
+        "assignIpv6AddressOnCreation": false,
+        "availabilityZone": "ap-southeast-1a",
+        "availabilityZoneId": "apse1-az2",
+        "cidrBlock": "10.0.0.0/18",
+        "customerOwnedIpv4Pool": "",
+        "enableDns64": false,
+        "enableLniAtDeviceIndex": 0,
+        "enableResourceNameDnsARecordOnLaunch": false,
+        "enableResourceNameDnsAaaaRecordOnLaunch": false,
+        "id": "subnet-0712cb3f6aa83cb15",
+        "ipv6CidrBlock": "",
+        "ipv6CidrBlockAssociationId": "",
+        "ipv6Native": false,
+        "mapCustomerOwnedIpOnLaunch": false,
+        "mapPublicIpOnLaunch": false,
+        "outpostArn": "",
+        "ownerId": "366451245016",
+        "privateDnsHostnameTypeOnLaunch": "ip-name",
+        "tags": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-private-1",
+          "Project": "VisionSync",
+          "SubnetType": "Private"
+        },
+        "tagsAll": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-private-1",
+          "Project": "VisionSync",
+          "SubnetType": "Private"
+        },
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet::vision-sync-vpc-private-1",
+        "vpcId": "vpc-0df1ecaaa12a5dd23"
+      },
+      {
+        "arn": "arn:aws:ec2:ap-southeast-1:366451245016:subnet/subnet-010e5ac21cd8c0126",
+        "assignIpv6AddressOnCreation": false,
+        "availabilityZone": "ap-southeast-1b",
+        "availabilityZoneId": "apse1-az1",
+        "cidrBlock": "10.0.192.0/19",
+        "customerOwnedIpv4Pool": "",
+        "enableDns64": false,
+        "enableLniAtDeviceIndex": 0,
+        "enableResourceNameDnsARecordOnLaunch": false,
+        "enableResourceNameDnsAaaaRecordOnLaunch": false,
+        "id": "subnet-010e5ac21cd8c0126",
+        "ipv6CidrBlock": "",
+        "ipv6CidrBlockAssociationId": "",
+        "ipv6Native": false,
+        "mapCustomerOwnedIpOnLaunch": false,
+        "mapPublicIpOnLaunch": true,
+        "outpostArn": "",
+        "ownerId": "366451245016",
+        "privateDnsHostnameTypeOnLaunch": "ip-name",
+        "tags": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-public-2",
+          "Project": "VisionSync",
+          "SubnetType": "Public"
+        },
+        "tagsAll": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-public-2",
+          "Project": "VisionSync",
+          "SubnetType": "Public"
+        },
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet::vision-sync-vpc-public-2",
+        "vpcId": "vpc-0df1ecaaa12a5dd23"
+      },
+      {
+        "arn": "arn:aws:ec2:ap-southeast-1:366451245016:subnet/subnet-0a6ba9bb0f56722f5",
+        "assignIpv6AddressOnCreation": false,
+        "availabilityZone": "ap-southeast-1b",
+        "availabilityZoneId": "apse1-az1",
+        "cidrBlock": "10.0.128.0/18",
+        "customerOwnedIpv4Pool": "",
+        "enableDns64": false,
+        "enableLniAtDeviceIndex": 0,
+        "enableResourceNameDnsARecordOnLaunch": false,
+        "enableResourceNameDnsAaaaRecordOnLaunch": false,
+        "id": "subnet-0a6ba9bb0f56722f5",
+        "ipv6CidrBlock": "",
+        "ipv6CidrBlockAssociationId": "",
+        "ipv6Native": false,
+        "mapCustomerOwnedIpOnLaunch": false,
+        "mapPublicIpOnLaunch": false,
+        "outpostArn": "",
+        "ownerId": "366451245016",
+        "privateDnsHostnameTypeOnLaunch": "ip-name",
+        "tags": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-private-2",
+          "Project": "VisionSync",
+          "SubnetType": "Private"
+        },
+        "tagsAll": {
+          "Environment": "dev",
+          "ManagedBy": "Pulumi",
+          "Name": "vision-sync-vpc-private-2",
+          "Project": "VisionSync",
+          "SubnetType": "Private"
+        },
+        "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc$aws:ec2/subnet:Subnet::vision-sync-vpc-private-2",
+        "vpcId": "vpc-0df1ecaaa12a5dd23"
+      }
+    ],
+    "tags": {
+      "Environment": "dev",
+      "ManagedBy": "Pulumi",
+      "Name": "vision-sync-vpc",
+      "Project": "VisionSync"
+    },
+    "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc::vision-sync-vpc",
+    "vpc": {
+      "arn": "arn:aws:ec2:ap-southeast-1:366451245016:vpc/vpc-0df1ecaaa12a5dd23",
+      "assignGeneratedIpv6CidrBlock": false,
+      "cidrBlock": "10.0.0.0/16",
+      "defaultNetworkAclId": "acl-0644a8834ff95d5a0",
+      "defaultRouteTableId": "rtb-05221ab0948ce4006",
+      "defaultSecurityGroupId": "sg-0bdb55e1f3ff54698",
+      "dhcpOptionsId": "dopt-024da6022779ffa17",
+      "enableDnsHostnames": true,
+      "enableDnsSupport": true,
+      "enableNetworkAddressUsageMetrics": false,
+      "id": "vpc-0df1ecaaa12a5dd23",
+      "instanceTenancy": "default",
+      "ipv4IpamPoolId": null,
+      "ipv4NetmaskLength": null,
+      "ipv6AssociationId": "",
+      "ipv6CidrBlock": "",
+      "ipv6CidrBlockNetworkBorderGroup": "",
+      "ipv6IpamPoolId": "",
+      "ipv6NetmaskLength": 0,
+      "mainRouteTableId": "rtb-05221ab0948ce4006",
+      "ownerId": "366451245016",
+      "tags": {
+        "Environment": "dev",
+        "ManagedBy": "Pulumi",
+        "Name": "vision-sync-vpc",
+        "Project": "VisionSync"
+      },
+      "tagsAll": {
+        "Environment": "dev",
+        "ManagedBy": "Pulumi",
+        "Name": "vision-sync-vpc",
+        "Project": "VisionSync"
+      },
+      "urn": "urn:pulumi:dev::vision-sync-infrastructure::awsx:ec2:Vpc$aws:ec2/vpc:Vpc::vision-sync-vpc"
+    },
+    "vpcEndpoints": [],
+    "vpcId": "vpc-0df1ecaaa12a5dd23"
+  }
+}

@@ -1,0 +1,72 @@
+# Environment variables
+.env
+.env.*
+**/.env
+**/.env.*
+
+# AWS credentials
+.aws/
+**/.aws/
+
+# Node.js dependencies
+node_modules/
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+**/dist/
+build/
+**/build/
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# Coverage
+coverage/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code files
+.claude
+**/.claude
+
+# OS files
+.DS_Store
+._*
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Certificate files
+*.pem
+*.key
+*.crt
+*.cert
+
+# SSH keys
+*.rsa
+*.rsa.pub
+**/id_rsa*
+**/.ssh/
+
+.claude
+.vscode

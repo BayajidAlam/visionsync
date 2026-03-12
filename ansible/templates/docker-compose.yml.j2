@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  client:
+    image: "{{ ansible_env.CLIENT_ECR_REPO }}:latest"
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
+    restart: unless-stopped
+
+  server:
+    image: "{{ ansible_env.SERVER_ECR_REPO }}:latest"
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI={{ ansible_env.MONGODB_URI }}
+      - AWS_REGION={{ aws_region }}
+    restart: unless-stopped
+
+  # Video processor container runs on-demand via ECS, not as a service
+  # This is just for reference/testing
+  video-processor:
+    image: "{{ ansible_env.CONTAINER_ECR_REPO }}:latest"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI={{ ansible_env.MONGODB_URI }}
+      - AWS_REGION={{ aws_region }}
+    profiles:
+      - testing
+    restart: "no"

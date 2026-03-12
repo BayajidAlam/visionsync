@@ -1,0 +1,14 @@
+# Pulumi.yaml
+name: vision-sync-infrastructure
+description: VisionSync video streaming platform infrastructure with TypeScript
+runtime:
+  name: nodejs
+  options:
+    packagemanager: npm
+config:
+  pulumi:tags:
+    value:
+      Project: VisionSync
+      ManagedBy: Pulumi
+
+

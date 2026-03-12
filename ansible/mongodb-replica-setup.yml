@@ -1,0 +1,122 @@
+---
+- name: Setup MongoDB Replica Set
+  hosts: mongodb
+  become: yes
+  vars:
+    mongodb_version: "7.0"
+    mongodb_port: 27017
+    replica_set_name: "vision-sync-rs"
+    mongodb_data_path: "/data/mongodb"
+    mongodb_log_path: "/var/log/mongodb"
+
+  tasks:
+    - name: Update package index
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - gnupg
+          - curl
+        state: present
+
+    - name: Add MongoDB signing key
+      apt_key:
+        url: https://www.mongodb.org/static/pgp/server-{{ mongodb_version }}.asc
+        state: present
+
+    - name: Add MongoDB repository
+      apt_repository:
+        repo: "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/{{ mongodb_version }} multiverse"
+        state: present
+
+    - name: Install MongoDB
+      apt:
+        name: mongodb-org
+        state: present
+        update_cache: yes
+
+    - name: Create MongoDB data directory
+      file:
+        path: "{{ mongodb_data_path }}"
+        state: directory
+        owner: mongodb
+        group: mongodb
+        mode: "0755"
+
+    - name: Create MongoDB log directory
+      file:
+        path: "{{ mongodb_log_path }}"
+        state: directory
+        owner: mongodb
+        group: mongodb
+        mode: "0755"
+
+    - name: Configure MongoDB for replica set
+      template:
+        src: mongod.conf.j2
+        dest: /etc/mongod.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: restart mongodb
+
+    - name: Start and enable MongoDB
+      systemd:
+        name: mongod
+        state: started
+        enabled: yes
+
+    - name: Wait for MongoDB to be ready
+      wait_for:
+        port: "{{ mongodb_port }}"
+        delay: 10
+        timeout: 60
+
+  handlers:
+    - name: restart mongodb
+      systemd:
+        name: mongod
+        state: restarted
+
+- name: Initialize MongoDB Replica Set
+  hosts: mongodb[0]
+  become: yes
+  vars:
+    replica_set_name: "rs0"
+    primary_ip: "10.0.1.15"
+    secondary1_ip: "10.0.174.69"
+    secondary2_ip: "10.0.22.130"
+
+  tasks:
+    - name: Check if replica set is already initialized
+      shell: |
+        mongosh --quiet --eval "try { rs.status(); print('REPLICA_SET_EXISTS'); } catch(e) { print('REPLICA_SET_NOT_INITIALIZED'); }"
+      register: replica_check
+      changed_when: false
+      failed_when: false
+
+    - name: Initialize replica set
+      shell: |
+        mongosh --quiet --eval "rs.initiate({ _id: '{{ replica_set_name }}', members: [ { _id: 0, host: '{{ primary_ip }}:27017', priority: 2 }, { _id: 1, host: '{{ secondary1_ip }}:27017', priority: 1 }, { _id: 2, host: '{{ secondary2_ip }}:27017', priority: 1 } ] })"
+      when: "'REPLICA_SET_NOT_INITIALIZED' in replica_check.stdout"
+      register: init_result
+
+    - name: Wait for replica set to be ready
+      shell: |
+        mongosh --quiet --eval "var status = rs.status(); if (status.ok === 1 && status.members.some(m => m.stateStr === 'PRIMARY')) { print('REPLICA_SET_READY'); } else { print('WAITING_FOR_PRIMARY'); }"
+      register: replica_status
+      until: "'REPLICA_SET_READY' in replica_status.stdout"
+      retries: 30
+      delay: 10
+      when: init_result is defined and init_result.changed
+
+    - name: Display replica set status
+      shell: mongosh --quiet --eval "rs.status()"
+      register: final_status
+
+    - name: Show replica set configuration
+      debug:
+        msg: "Replica set initialized successfully"

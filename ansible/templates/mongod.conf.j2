@@ -1,0 +1,28 @@
+# MongoDB Configuration File for Replica Set
+
+# Network interfaces
+net:
+  port: {{ mongodb_port }}
+  bindIp: 0.0.0.0  # Allow connections from any IP
+
+# Data storage
+storage:
+  dbPath: {{ mongodb_data_path }}
+
+# System log
+systemLog:
+  destination: file
+  logAppend: true
+  path: {{ mongodb_log_path }}/mongod.log
+
+# Process management (managed by systemd)
+processManagement:
+  timeZoneInfo: /usr/share/zoneinfo
+
+# Security
+security:
+  authorization: disabled  # Start without auth for initial setup
+
+# Replica set configuration  
+replication:
+  replSetName: rs0

@@ -1,0 +1,80 @@
+---
+# Simple Docker-based Redis Setup for VisionSync (Ubuntu)
+- name: Setup Redis with Docker on Ubuntu
+  hosts: redis
+  become: true
+  gather_facts: true
+  vars:
+    redis_password: "{{ ansible_env.REDIS_PASSWORD | default('VisionSyncRedis2024!') }}"
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install required packages
+      apt:
+        name:
+          - docker.io
+          - python3-docker
+        state: present
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Create Redis configuration
+      template:
+        src: redis-docker.conf
+        dest: /opt/redis.conf
+        mode: "0644"
+
+    - name: Run Redis container
+      docker_container:
+        name: redis-server
+        image: redis:7-alpine
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "6379:6379"
+        volumes:
+          - "redis-data:/data"
+          - "/opt/redis.conf:/usr/local/etc/redis/redis.conf:ro"
+        command: "redis-server /usr/local/etc/redis/redis.conf"
+        env:
+          REDIS_PASSWORD: "{{ redis_password }}"
+        healthcheck:
+          test: ["CMD", "redis-cli", "-a", "{{ redis_password }}", "ping"]
+          interval: "30s"
+          timeout: "10s"
+          retries: 3
+
+    - name: Wait for Redis to be ready
+      wait_for:
+        port: 6379
+        delay: 5
+        timeout: 30
+
+    - name: Test Redis connection
+      shell: |
+        docker exec redis-server redis-cli -a {{ redis_password }} ping
+      register: redis_ping
+      failed_when: redis_ping.stdout != "PONG"
+
+    - name: Display Redis status
+      debug:
+        msg:
+          - "✅ Redis is running in Docker container!"
+          - "Connection test: {{ redis_ping.stdout }}"
+          - "Container: redis-server"
+          - "Image: redis:7-alpine"
+          - "Port: 6379"

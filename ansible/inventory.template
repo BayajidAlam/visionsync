@@ -1,0 +1,49 @@
+# VisionSync Ansible Inventory Template
+# Generated from Pulumi infrastructure outputs
+
+[mongodb]
+# MongoDB replica set instances
+mongodb-primary ansible_host={{ mongodb_primary_ip }} ansible_user=ec2-user
+mongodb-secondary-1 ansible_host={{ mongodb_secondary_ip }} ansible_user=ec2-user
+mongodb-secondary-2 ansible_host={{ mongodb_secondary_2_ip }} ansible_user=ec2-user
+
+[backend]
+# Backend application server (includes Redis via Docker)
+backend-server ansible_host={{ backend_public_ip }} ansible_user=ubuntu
+
+[all:vars]
+# Environment variables
+ansible_ssh_private_key_file=~/.ssh/your-key.pem
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+
+# MongoDB Configuration
+MONGODB_URI={{ mongodb_connection_uri }}
+MONGODB_PRIMARY_IP={{ mongodb_primary_ip }}
+MONGODB_SECONDARY_IP={{ mongodb_secondary_ip }}
+MONGODB_SECONDARY_2_IP={{ mongodb_secondary_2_ip }}
+
+# Redis Configuration (Docker on backend server)
+REDIS_HOST={{ backend_public_ip }}
+REDIS_PORT=6379
+REDIS_PASSWORD=VisionSyncRedis2024!
+REDIS_URL=redis://:VisionSyncRedis2024!@{{ backend_public_ip }}:6379
+
+# S3 Configuration
+S3_BUCKET_RAW={{ raw_videos_bucket_name }}
+S3_BUCKET_PROCESSED={{ processed_videos_bucket_name }}
+
+# SQS Configuration
+SQS_QUEUE_URL={{ video_processing_queue_url }}
+
+# ECR Configuration
+SERVER_ECR_REPO={{ server_ecr_repository_url }}
+CLIENT_ECR_REPO={{ client_ecr_repository_url }}
+CONTAINER_ECR_REPO={{ ecr_repository_url }}
+
+# CloudFront Configuration
+CLOUDFRONT_DOMAIN={{ cloudfront_distribution_domain }}
+CLOUDFRONT_DISTRIBUTION_ID={{ cloudfront_distribution_id }}
+
+# Backend Configuration
+BACKEND_PUBLIC_IP={{ backend_public_ip }}
+BACKEND_WEBHOOK_URL={{ backend_webhook_url }}

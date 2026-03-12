@@ -1,0 +1,23 @@
+{
+  "name": "lambda-trigger",
+  "version": "1.0.0",
+  "description": "Lambda function to trigger ECS tasks for video processing",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "package": "npm run build && zip -r lambda.zip dist/ node_modules/",
+    "clean": "rm -rf dist/ lambda.zip"
+  },
+  "dependencies": {
+    "@aws-sdk/client-ecs": "^3.744.0",
+    "@aws-sdk/client-sqs": "^3.744.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.119",
+    "@types/node": "^20.19.1",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

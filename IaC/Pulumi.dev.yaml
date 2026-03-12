@@ -1,0 +1,4 @@
+config:
+  aws:region: ap-southeast-1
+  aws:profile: default # Optional: specify AWS profile
+  vision-sync-infrastructure:sshPublicKey: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCbcJdpZXyYCYHMSuMxQy9hRbeQ9CvFDDvqUB4WKaQR7rHvtfGGArqecQpdjvE4ARYdcp6WySIWAj27gnXwW5ZfXqYibx4lsg4QTNvKnZ6woXSrNjFQibzALMNwepfzZViCbWrzo1rwsDYuo1MQgPbsx1KioVQudZcVMNhSdtwhFptWAFO0mjYw3eGONS9M7kSpCsooVOwe8zTmUIs0rYwS0Sfn5Ivmk4lj4yTUjHuZ7ARCmRv934oK3in9x8y1bF6cl9dt2K7ONZrnafGDtZEOVNA+M65iU8uev/nM5BV/MN+SBpugCI8mjotd47IwfWk6uwnfXxYrmoPAHeJKC2qn vision-sync-backend

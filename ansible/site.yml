@@ -1,0 +1,18 @@
+---
+# VisionSync Infrastructure Setup
+# This playbook sets up the complete multi-instance architecture:
+# - MongoDB 3-node replica set in private subnet  
+# - Redis instance in private subnet
+# - Backend deployment in private subnet
+# - Frontend deployment in public subnet
+# All private instances accessed via bastion host
+
+- name: Setup MongoDB Replica Set Infrastructure
+  import_playbook: mongodb-replica-setup.yml
+  tags: ['mongodb', 'database']
+
+- name: Setup Redis Cache Server
+  import_playbook: redis-setup.yml 
+  tags: ['redis', 'cache']
+
+# Additional playbooks will be added for backend and frontend deployment

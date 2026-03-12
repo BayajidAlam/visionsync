@@ -1,0 +1,114 @@
+---
+- name: Setup Redis Server
+  hosts: redis
+  become: yes
+  vars:
+    redis_port: 6379
+    redis_password: "VisionSyncRedis2024!"
+    redis_data_path: "/data/redis"
+    redis_memory_limit: "256mb"
+    redis_log_path: "/var/log/redis"
+    
+  tasks:
+    - name: Update package index
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Create Redis data directory
+      file:
+        path: "{{ redis_data_path }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Create Redis log directory
+      file:
+        path: "{{ redis_log_path }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: '0755'
+
+    - name: Pull Redis Docker image
+      docker_image:
+        name: redis:7-alpine
+        source: pull
+
+    - name: Stop existing Redis container if running
+      docker_container:
+        name: redis-server
+        state: absent
+      ignore_errors: yes
+
+    - name: Start Redis container
+      docker_container:
+        name: redis-server
+        image: redis:7-alpine
+        restart_policy: unless-stopped
+        ports:
+          - "{{ redis_port }}:6379"
+        volumes:
+          - "{{ redis_data_path }}:/data"
+          - "{{ redis_log_path }}:/var/log/redis"
+        command: >
+          redis-server
+          --requirepass {{ redis_password }}
+          --maxmemory {{ redis_memory_limit }}
+          --maxmemory-policy allkeys-lru
+          --appendonly yes
+          --appendfsync everysec
+          --tcp-backlog 128
+          --databases 16
+          --save 900 1
+          --save 300 10
+          --save 60 10000
+        state: started
+
+    - name: Wait for Redis to be ready
+      wait_for:
+        port: "{{ redis_port }}"
+        delay: 5
+        timeout: 30
+
+    - name: Test Redis connection
+      command: |
+        docker exec redis-server redis-cli -a {{ redis_password }} ping
+      register: redis_test
+      failed_when: "'PONG' not in redis_test.stdout"
+
+    - name: Set Redis configuration for production
+      command: |
+        docker exec redis-server redis-cli -a {{ redis_password }} CONFIG SET {{ item.key }} {{ item.value }}
+      loop:
+        - { key: "tcp-keepalive", value: "300" }
+        - { key: "timeout", value: "0" }
+        - { key: "tcp-backlog", value: "128" }
+      ignore_errors: yes
+
+    - name: Display Redis info
+      command: |
+        docker exec redis-server redis-cli -a {{ redis_password }} INFO SERVER
+      register: redis_info
+
+    - name: Show Redis server information
+      debug:
+        msg: "{{ redis_info.stdout_lines }}"

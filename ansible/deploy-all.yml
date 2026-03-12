@@ -1,0 +1,343 @@
+---
+# Complete VisionSync Deployment Playbook
+- name: Deploy VisionSync Application with Redis, Frontend & Backend
+  hosts: all
+  become: true
+  gather_facts: true
+  vars:
+    redis_password: "VisionSyncRedis2024!"
+    backend_ecr_url: "856461101633.dkr.ecr.ap-southeast-1.amazonaws.com/vision-sync-server-dev"
+    frontend_ecr_url: "856461101633.dkr.ecr.ap-southeast-1.amazonaws.com/vision-sync-client-dev"
+    aws_region: "ap-southeast-1"
+
+  tasks:
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+      when: ansible_os_family == "Debian"
+
+    - name: Update system packages (Amazon Linux)
+      yum:
+        name: "*"
+        state: latest
+        update_cache: yes
+      when: ansible_os_family == "RedHat"
+
+    - name: Install required packages
+      package:
+        name:
+          - docker.io
+          - nginx
+          - awscli
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Install required packages (Amazon Linux)
+      yum:
+        name:
+          - docker
+          - nginx
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add user to docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Login to ECR for backend
+      shell: |
+        aws ecr get-login-password --region {{ aws_region }} | docker login --username AWS --password-stdin {{ backend_ecr_url | regex_replace('/.*', '') }}
+      become_user: "{{ ansible_user }}"
+
+    - name: Login to ECR for frontend  
+      shell: |
+        aws ecr get-login-password --region {{ aws_region }} | docker login --username AWS --password-stdin {{ frontend_ecr_url | regex_replace('/.*', '') }}
+      become_user: "{{ ansible_user }}"
+
+    # Redis Setup
+    - name: Create Redis data directory
+      file:
+        path: /opt/redis
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0755'
+
+    - name: Create Redis configuration
+      copy:
+        content: |
+          bind 127.0.0.1
+          port 6379
+          requirepass {{ redis_password }}
+          appendonly yes
+          appendfsync everysec
+          save 900 1
+          save 300 10
+          save 60 10000
+        dest: /opt/redis/redis.conf
+        mode: '0644'
+
+    - name: Stop existing Redis container
+      docker_container:
+        name: redis-server
+        state: absent
+      ignore_errors: yes
+
+    - name: Run Redis container
+      docker_container:
+        name: redis-server
+        image: redis:7-alpine
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "6379:6379"
+        volumes:
+          - "redis-data:/data"
+          - "/opt/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro"
+        command: "redis-server /usr/local/etc/redis/redis.conf"
+
+    - name: Wait for Redis to be ready
+      wait_for:
+        port: 6379
+        delay: 5
+        timeout: 30
+
+    # Backend Deployment
+    - name: Stop existing backend container
+      docker_container:
+        name: vision-sync-backend
+        state: absent
+      ignore_errors: yes
+
+    - name: Pull backend image
+      docker_image:
+        name: "{{ backend_ecr_url }}:latest"
+        source: pull
+
+    - name: Create backend environment file
+      copy:
+        content: |
+          PORT=5000
+          NODE_ENV=production
+          
+          # AWS Configuration
+          AWS_REGION={{ aws_region }}
+          AWS_ACCESS_KEY_ID={{ aws_access_key_id }}
+          AWS_SECRET_ACCESS_KEY={{ aws_secret_access_key }}
+          
+          # S3 Configuration
+          S3_BUCKET_RAW=vision-sync-raw-videos-dev-p3yfv
+          S3_BUCKET_PROCESSED=vision-sync-processed-videos-dev-ha5clq
+          
+          # SQS Configuration  
+          SQS_QUEUE_URL=https://sqs.ap-southeast-1.amazonaws.com/856461101633/vision-sync-video-processing-dev
+          
+          # MongoDB Configuration (Atlas)
+          MONGODB_URI=mongodb+srv://Uni2_User:InJwvIcMTmvvBZ7x@myclaster-1.wxhqp81.mongodb.net/?retryWrites=true&w=majority&appName=MyClaster-1
+          MONGODB_CONNECTION_POOL_SIZE=5
+          MONGODB_MAX_IDLE_TIME=30000
+          MONGODB_SERVER_SELECTION_TIMEOUT=5000
+          
+          # Redis Configuration
+          REDIS_URL=redis://:{{ redis_password }}@localhost:6379
+          
+          # CloudFront Configuration
+          CLOUDFRONT_DISTRIBUTION_ID=E23G6UQ3NJNAWT
+          CLOUDFRONT_DOMAIN=d2r57olr9c856o.cloudfront.net
+          
+          # ECS Configuration
+          ECS_CLUSTER_NAME=vision-sync-processing-dev
+          ECS_TASK_DEFINITION=vision-sync-video-processing-dev
+          ECS_USE_FARGATE_SPOT=true
+          ECS_TASK_CPU=1024
+          ECS_TASK_MEMORY=2048
+          
+          # Video Processing
+          FFMPEG_PRESET=fast
+          FFMPEG_THREADS=2
+          PROCESSING_PRIORITY=normal
+          ENABLE_BATCH_PROCESSING=true
+          
+          # Rate Limiting
+          RATE_LIMIT_WINDOW_MS=900000
+          RATE_LIMIT_MAX_REQUESTS=100
+          UPLOAD_RATE_LIMIT_MAX=5
+          RATE_LIMIT_STORE=redis
+          
+          # CORS Configuration
+          FRONTEND_URL=http://{{ ansible_default_ipv4.address }}
+          
+          # Monitoring
+          LOG_LEVEL=info
+          LOG_RETENTION_DAYS=7
+          METRICS_ENABLED=false
+          
+          # Webhook URL
+          WEBHOOK_URL=http://{{ ansible_default_ipv4.address }}:5000/api/webhook/processing-complete
+        dest: /home/{{ ansible_user }}/.env-backend
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Run backend container
+      docker_container:
+        name: vision-sync-backend
+        image: "{{ backend_ecr_url }}:latest"
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "5000:5000"
+        env_file: "/home/{{ ansible_user }}/.env-backend"
+        networks:
+          - name: bridge
+
+    # Frontend Deployment  
+    - name: Stop existing frontend container
+      docker_container:
+        name: vision-sync-frontend
+        state: absent
+      ignore_errors: yes
+
+    - name: Pull frontend image
+      docker_image:
+        name: "{{ frontend_ecr_url }}:latest"
+        source: pull
+
+    - name: Run frontend container
+      docker_container:
+        name: vision-sync-frontend
+        image: "{{ frontend_ecr_url }}:latest"
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "3000:80"
+
+    # Nginx Reverse Proxy Setup
+    - name: Stop nginx
+      systemd:
+        name: nginx
+        state: stopped
+      ignore_errors: yes
+
+    - name: Create Nginx configuration
+      copy:
+        content: |
+          server {
+              listen 80 default_server;
+              listen [::]:80 default_server;
+              server_name _;
+              
+              # Frontend (React app)
+              location / {
+                  proxy_pass http://localhost:3000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_cache_bypass $http_upgrade;
+              }
+              
+              # Backend API routes
+              location /api/ {
+                  proxy_pass http://localhost:5000;
+                  proxy_http_version 1.1;
+                  proxy_set_header Upgrade $http_upgrade;
+                  proxy_set_header Connection 'upgrade';
+                  proxy_set_header Host $host;
+                  proxy_set_header X-Real-IP $remote_addr;
+                  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                  proxy_set_header X-Forwarded-Proto $scheme;
+                  proxy_cache_bypass $http_upgrade;
+              }
+              
+              # Health check endpoint
+              location /health {
+                  proxy_pass http://localhost:5000/health;
+                  proxy_http_version 1.1;
+                  proxy_set_header Host $host;
+              }
+          }
+        dest: /etc/nginx/sites-available/visionSync
+        backup: yes
+
+    - name: Enable VisionSync site
+      file:
+        src: /etc/nginx/sites-available/visionSync
+        dest: /etc/nginx/sites-enabled/visionSync
+        state: link
+
+    - name: Remove default nginx site
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Test nginx configuration
+      command: nginx -t
+      register: nginx_test
+      failed_when: nginx_test.rc != 0
+
+    - name: Start and enable nginx
+      systemd:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Wait for all services to be ready
+      pause:
+        seconds: 10
+
+    - name: Test Redis connection
+      shell: docker exec redis-server redis-cli -a {{ redis_password }} ping
+      register: redis_test
+      failed_when: redis_test.stdout != "PONG"
+
+    - name: Test backend health
+      uri:
+        url: "http://localhost:5000/health"
+        method: GET
+        timeout: 10
+      register: backend_health
+      ignore_errors: yes
+
+    - name: Test frontend access
+      uri:
+        url: "http://localhost:3000"
+        method: GET
+        timeout: 10
+      register: frontend_test
+      ignore_errors: yes
+
+    - name: Test nginx proxy
+      uri:
+        url: "http://localhost:80"
+        method: GET
+        timeout: 10
+      register: nginx_test_result
+      ignore_errors: yes
+
+    - name: Display deployment status
+      debug:
+        msg:
+          - "🚀 VisionSync Deployment Complete!"
+          - "📊 Service Status:"
+          - "  ✅ Redis: {{ redis_test.stdout }}"
+          - "  {% if backend_health.status is defined %}✅{% else %}❌{% endif %} Backend: {{ backend_health.status | default('Failed') }}"
+          - "  {% if frontend_test.status is defined %}✅{% else %}❌{% endif %} Frontend: {{ frontend_test.status | default('Failed') }}"
+          - "  {% if nginx_test_result.status is defined %}✅{% else %}❌{% endif %} Nginx Proxy: {{ nginx_test_result.status | default('Failed') }}"
+          - ""
+          - "🌐 Access URLs:"
+          - "  Frontend: http://{{ ansible_default_ipv4.address }}"
+          - "  Backend API: http://{{ ansible_default_ipv4.address }}/api"
+          - "  Backend Direct: http://{{ ansible_default_ipv4.address }}:5000"
+          - "  Frontend Direct: http://{{ ansible_default_ipv4.address }}:3000"

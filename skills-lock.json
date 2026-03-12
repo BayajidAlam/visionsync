@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "aws-diagrams": {
+      "source": "eraserlabs/eraser-io",
+      "sourceType": "github",
+      "computedHash": "29eb7b57bcaf6dcd5de0ac18c6713b5344065329e267e3f158d0c105f3bfbb65"
+    },
+    "pulumi-best-practices": {
+      "source": "pulumi/agent-skills",
+      "sourceType": "github",
+      "computedHash": "813aa82228914563499b18b7db5cb28e24e095ff1bc5e190d35913d83170e1ea"
+    }
+  }
+}
