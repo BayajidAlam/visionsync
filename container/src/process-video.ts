@@ -229,45 +229,53 @@ export class VideoProcessor {
         // Processing timeout is enforced at the Node.js process level via setTimeout below.
 
         "-filter_complex",
-        // COST OPTIMIZATION: Reduced quality levels for cost savings
-        this.env.processingPriority === "low"
-          ? "[0:v]split=3[v1][v2][v3]; [v1]scale=1280:720[v1out]; [v2]scale=960:540[v2out]; [v3]scale=640:360[v3out]"
-          : "[0:v]split=4[v1][v2][v3][v4]; [v1]scale=1920:1080[v1out]; [v2]scale=1280:720[v2out]; [v3]scale=960:540[v3out]; [v4]scale=640:360[v4out]",
+        // Keep a consistent rendition ladder so clients always expose full resolution options.
+        "[0:v]split=4[v1][v2][v3][v4]; [v1]scale=1920:1080[v1out]; [v2]scale=1280:720[v2out]; [v3]scale=960:540[v3out]; [v4]scale=640:360[v4out]",
 
         // COST OPTIMIZATION: Video streams with optimized bitrates
         ...(this.env.processingPriority === "low"
           ? [
-              // Lower quality for Spot instances (3 streams)
+              // Lower bitrate ladder for Spot instances (4 streams)
               "-map",
               "[v1out]",
               "-c:v:0",
               "libx264",
               "-b:v:0",
-              "2500k",
+              "3000k",
               "-maxrate:0",
-              "2750k",
+              "3300k",
               "-bufsize:0",
-              "5000k",
+              "6000k",
               "-map",
               "[v2out]",
               "-c:v:1",
               "libx264",
               "-b:v:1",
-              "1200k",
+              "1800k",
               "-maxrate:1",
-              "1320k",
+              "1980k",
               "-bufsize:1",
-              "2400k",
+              "3600k",
               "-map",
               "[v3out]",
               "-c:v:2",
               "libx264",
               "-b:v:2",
-              "600k",
+              "1000k",
               "-maxrate:2",
-              "660k",
+              "1100k",
               "-bufsize:2",
-              "1200k",
+              "2000k",
+              "-map",
+              "[v4out]",
+              "-c:v:3",
+              "libx264",
+              "-b:v:3",
+              "550k",
+              "-maxrate:3",
+              "605k",
+              "-bufsize:3",
+              "1100k",
             ]
           : [
               // Full quality for regular instances (4 streams)
@@ -440,6 +448,92 @@ export class VideoProcessor {
     });
   }
 
+  private async generateThumbnail(inputPath: string): Promise<string> {
+    const thumbPath = path.join(this.tempDir, "thumbnail.jpg");
+    console.log("Generating thumbnail with FFmpeg...");
+
+    return new Promise((resolve, reject) => {
+      // Seek to 3 s, grab 1 frame, scale to 1280 px wide, high JPEG quality
+      const args = [
+        "-ss",
+        "00:00:03",
+        "-i",
+        inputPath,
+        "-vframes",
+        "1",
+        "-vf",
+        "scale=1280:-2",
+        "-q:v",
+        "3",
+        "-y",
+        thumbPath,
+      ];
+
+      const ffmpeg = spawn("ffmpeg", args);
+      const errLines: string[] = [];
+      ffmpeg.stderr.on("data", (chunk: Buffer) =>
+        errLines.push(chunk.toString()),
+      );
+
+      ffmpeg.on("close", (code) => {
+        if (code === 0) {
+          console.log(`Thumbnail generated: ${thumbPath}`);
+          resolve(thumbPath);
+        } else {
+          // Video may be shorter than 3 s — retry at first frame
+          const retry = spawn("ffmpeg", [
+            "-i",
+            inputPath,
+            "-vframes",
+            "1",
+            "-vf",
+            "scale=1280:-2",
+            "-q:v",
+            "3",
+            "-y",
+            thumbPath,
+          ]);
+          const retryErr: string[] = [];
+          retry.stderr.on("data", (c: Buffer) => retryErr.push(c.toString()));
+          retry.on("close", (rc) => {
+            if (rc === 0) {
+              console.log("Thumbnail generated (retry at frame 0)");
+              resolve(thumbPath);
+            } else {
+              reject(
+                new Error(
+                  `FFmpeg thumbnail failed (code ${rc}): ${retryErr.join("")}`,
+                ),
+              );
+            }
+          });
+          retry.on("error", reject);
+        }
+      });
+
+      ffmpeg.on("error", reject);
+    });
+  }
+
+  private async uploadThumbnail(thumbPath: string): Promise<void> {
+    const key = `${this.env.videoId}/thumbnail.jpg`;
+    const fileContent = await fs.readFile(thumbPath);
+    await this.s3Client.send(
+      new PutObjectCommand({
+        Bucket: this.env.outputBucket,
+        Key: key,
+        Body: fileContent,
+        ContentType: "image/jpeg",
+        CacheControl: "max-age=31536000",
+        Metadata: {
+          "video-id": this.env.videoId,
+          "processed-by": "vision-sync-processor",
+        },
+      }),
+    );
+    console.log(`Thumbnail uploaded → s3://${this.env.outputBucket}/${key}`);
+  }
+
   private async uploadProcessedFiles(outputDir: string): Promise<any[]> {
     console.log("Uploading processed files to S3...");
 
@@ -555,11 +649,25 @@ export class VideoProcessor {
       // Download video from S3
       const videoSize = await this.downloadVideo(inputPath);
 
+      // Notify server that processing has started (so UI can update to "processing" state)
+      await this.sendWebhook("processing");
+
       // Process video with FFmpeg
       await this.processVideoWithFFmpeg(inputPath, outputPath);
 
       // Upload processed files
       const uploadResults = await this.uploadProcessedFiles(outputPath);
+
+      // Generate & upload thumbnail (non-fatal — don't abort if it fails)
+      try {
+        const thumbPath = await this.generateThumbnail(inputPath);
+        await this.uploadThumbnail(thumbPath);
+      } catch (thumbErr) {
+        console.warn(
+          "Thumbnail generation failed (non-fatal):",
+          thumbErr instanceof Error ? thumbErr.message : thumbErr,
+        );
+      }
 
       // Send success webhook
       const manifestUrl = `${this.env.videoId}/manifest.mpd`;

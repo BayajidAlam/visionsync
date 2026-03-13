@@ -13,9 +13,13 @@ import { formatFileSize } from "@/lib/utils";
 
 interface VideoUploadProps {
   onUploadComplete: (videoId: string) => void;
+  onUploadStart?: (videoId: string) => void;
 }
 
-export function VideoUploadComponent({ onUploadComplete }: VideoUploadProps) {
+export function VideoUploadComponent({
+  onUploadComplete,
+  onUploadStart,
+}: VideoUploadProps) {
   const [uploads, setUploads] = useState<VideoUpload[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
@@ -83,6 +87,9 @@ export function VideoUploadComponent({ onUploadComplete }: VideoUploadProps) {
       );
 
       console.log(`✅ Generated presigned URL for: ${videoId}`);
+
+      // Notify parent immediately so socket room is joined early
+      onUploadStart?.(videoId);
 
       // Update with videoId
       setUploads((prev) =>
@@ -207,13 +214,13 @@ export function VideoUploadComponent({ onUploadComplete }: VideoUploadProps) {
   const getStatusColor = (status: VideoStatus) => {
     switch (status) {
       case VideoStatus.UPLOADING:
-        return "bg-blue-500";
+        return "border-blue-200 bg-blue-100 text-blue-700";
       case VideoStatus.UPLOADED:
-        return "bg-green-500";
+        return "border-emerald-200 bg-emerald-100 text-emerald-700";
       case VideoStatus.ERROR:
-        return "bg-red-500";
+        return "border-rose-200 bg-rose-100 text-rose-700";
       default:
-        return "bg-gray-500";
+        return "border-slate-200 bg-slate-100 text-slate-700";
     }
   };
 
@@ -231,10 +238,15 @@ export function VideoUploadComponent({ onUploadComplete }: VideoUploadProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="yt-surface border-0 bg-card/80 py-0 shadow-none pb-5">
+      <CardHeader className="border-b border-border/70 pb-4 pt-5">
         <CardTitle className="flex items-center justify-between">
-          <span>Upload Videos</span>
+          <div>
+            <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+              Creator Studio
+            </p>
+            <span className="text-xl">Upload Videos</span>
+          </div>
           <div className="flex items-center gap-2">
             {isConnected === null && (
               <Badge variant="secondary">
@@ -274,25 +286,32 @@ export function VideoUploadComponent({ onUploadComplete }: VideoUploadProps) {
 
         {/* Upload Area */}
         <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
+          className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition ${
             dragActive
-              ? "border-primary bg-primary/5"
-              : "border-muted-foreground/25 hover:border-primary/50"
+              ? "border-primary bg-primary/10"
+              : "border-border bg-background/45 hover:border-primary/45"
           } ${isConnected === false ? "opacity-50 pointer-events-none" : ""}`}
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
         >
-          <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+          <Upload className="mx-auto mb-4 h-12 w-12 text-muted-foreground" />
           <div className="space-y-2">
-            <p className="text-lg font-medium">Drop video files here</p>
+            <p className="text-lg font-semibold text-foreground">
+              Drag your video files here
+            </p>
             <p className="text-sm text-muted-foreground">
               or click to browse (MP4, MOV, AVI supported, max 5GB each)
             </p>
           </div>
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+            <Badge variant="outline">DASH Ready</Badge>
+            <Badge variant="outline">Multi-file</Badge>
+            <Badge variant="outline">Realtime Status</Badge>
+          </div>
           <Button
-            className="mt-4"
+            className="mt-4 rounded-full px-6"
             onClick={() => fileInputRef.current?.click()}
             disabled={isConnected === false}
           >
@@ -311,9 +330,14 @@ export function VideoUploadComponent({ onUploadComplete }: VideoUploadProps) {
         {/* Upload List */}
         {uploads.length > 0 && (
           <div className="space-y-3">
-            <h3 className="font-medium">Uploads ({uploads.length})</h3>
+            <h3 className="text-sm font-semibold text-foreground">
+              Queue ({uploads.length})
+            </h3>
             {uploads.map((upload, index) => (
-              <div key={index} className="border rounded-lg p-4 space-y-3">
+              <div
+                key={index}
+                className="space-y-3 rounded-xl border border-border bg-card p-4"
+              >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{upload.file.name}</p>
@@ -328,8 +352,8 @@ export function VideoUploadComponent({ onUploadComplete }: VideoUploadProps) {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge
-                      variant="secondary"
-                      className={`${getStatusColor(upload.status)} text-white`}
+                      variant="outline"
+                      className={`border ${getStatusColor(upload.status)}`}
                     >
                       <div className="flex items-center gap-1">
                         {getStatusIcon(upload.status)}
@@ -341,6 +365,7 @@ export function VideoUploadComponent({ onUploadComplete }: VideoUploadProps) {
                       <Button
                         size="sm"
                         variant="outline"
+                        className="rounded-full"
                         onClick={() => retryUpload(index)}
                       >
                         Retry

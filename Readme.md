@@ -39,6 +39,7 @@ The backend is deployed across multiple AWS EC2 instances in an autoscaling grou
 VisionSync consists of five main components working together to deliver a scalable video streaming platform:
 
 **1. Frontend (React + TypeScript):**
+
 - Modern React application with Shadcn UI components for video upload and streaming interface
 - Real-time progress tracking using Socket.IO for video processing status updates
 - DASH.js integration for adaptive streaming with automatic quality switching
@@ -46,6 +47,7 @@ VisionSync consists of five main components working together to deliver a scalab
 - Optimized build served through CloudFront for global low-latency access
 
 **2. Backend (Node.js + Express + TypeScript):**
+
 - RESTful API with Express handling video upload via presigned S3 URLs
 - Socket.IO for real-time WebSocket connections broadcasting processing status
 - Advanced rate limiting with multiple algorithms (token bucket, sliding window)
@@ -54,6 +56,7 @@ VisionSync consists of five main components working together to deliver a scalab
 - Integration with AWS services: S3, SQS, Lambda, CloudFront
 
 **3. Video Processing (ECS Fargate + FFmpeg):**
+
 - Containerized FFmpeg processor running on AWS ECS Fargate
 - Intelligent instance selection: 70% Spot (cost-optimized), 30% Regular (reliability)
 - Downloads videos from S3 raw bucket, transcodes to multiple resolutions
@@ -62,12 +65,14 @@ VisionSync consists of five main components working together to deliver a scalab
 - Sends webhook to backend upon completion
 
 **4. Database Layer:**
+
 - **MongoDB Replica Set**: 1 primary + 2 secondary nodes in private subnet (zone 1c)
 - **Redis Cache**: Single instance for session management and caching
 - Deployed and configured using Ansible automation
 - High availability with automatic failover
 
 **5. Infrastructure (AWS + Pulumi IaC):**
+
 - **VPC**: Multi-AZ deployment across 3 availability zones (ap-southeast-1a, 1b, 1c)
 - **Subnets**: Public (2 AZs for ALB/bastion), Private (3 AZs for apps/databases)
 - **Application Load Balancer**: Cross-AZ traffic distribution with health checks
@@ -83,6 +88,7 @@ VisionSync consists of five main components working together to deliver a scalab
 - **Bastion Host**: Secure SSH access to private subnet resources
 
 The architecture flow:
+
 1. User uploads video → **Frontend** generates presigned S3 URL
 2. Video uploaded to **S3 raw bucket** → triggers **Lambda** via **SQS** message
 3. **Lambda** launches **ECS Fargate** task (Spot or Regular based on file size)
@@ -94,6 +100,7 @@ The architecture flow:
 ## Features
 
 ### Video Processing & Streaming
+
 - **Adaptive Bitrate Streaming**: DASH-compliant streaming with automatic quality switching based on network conditions
 - **Multi-Resolution Support**: Videos transcoded to 1080p, 720p, 480p, 360p for optimal device compatibility
 - **FFmpeg Processing**: Professional-grade video compression and chunking (4-6 second segments)
@@ -102,6 +109,7 @@ The architecture flow:
 - **Automatic Thumbnail Generation**: Creates thumbnails during video processing
 
 ### Cost Optimization & Scalability
+
 - **Smart ECS Instance Selection**: 70% Spot instances (70% cost savings), 30% Regular Fargate for reliability
 - **Intelligent Fallback**: Automatic retry on Regular instances if Spot unavailable
 - **File Size-Based Strategy**: Files >1GB automatically use Regular Fargate for stability
@@ -110,6 +118,7 @@ The architecture flow:
 - **CloudFront CDN**: Global content delivery with intelligent caching for hot data
 
 ### Auto Scaling & High Availability
+
 - **Multi-AZ Deployment**: Infrastructure spans 3 availability zones (ap-southeast-1a, 1b, 1c)
 - **Backend Auto Scaling**: CPU-based scaling (10%-80% thresholds), 1-5 instances
 - **ECS Task Auto Scaling**: SQS depth-based scaling for video processing workload
@@ -118,6 +127,7 @@ The architecture flow:
 - **Zero-Downtime Deployments**: Rolling updates with health verification
 
 ### Advanced Features
+
 - **Multiple Rate Limiting Algorithms**: Token bucket, sliding window, fixed window implementations
 - **Redis Caching**: Session management, rate limiting, and Socket.IO backplane
 - **Dead Letter Queue**: Failed processing jobs captured for debugging and retry
@@ -126,6 +136,7 @@ The architecture flow:
 - **WebSocket Real-Time Updates**: Live status broadcasts for all connected clients
 
 ### DevOps & Automation
+
 - **Infrastructure as Code**: Complete Pulumi-based IaC for reproducible infrastructure
 - **Ansible Automation**: Automated deployment, configuration, and database setup
 - **One-Command Deployment**: `make deploy-all` deploys entire platform
@@ -285,6 +296,7 @@ The architecture flow:
 Before deploying the application, ensure you have the following:
 
 **Required:**
+
 - **AWS Account** with permissions for EC2, ECS, S3, Lambda, CloudFront, IAM, VPC, ALB
 - **AWS CLI** installed and configured (`aws configure` with access keys)
 - **Docker** installed (version 20.10+) for building and pushing containers
@@ -297,11 +309,13 @@ Before deploying the application, ensure you have the following:
 - **SSH key** for AWS EC2 access (will be auto-generated if not exists)
 
 **Optional:**
+
 - **MongoDB Atlas** account (for development, production uses local replica set)
 - **Redis** (for local development, production uses AWS-deployed Redis)
 - **FFmpeg** (for local video processing testing)
 
 **AWS Service Limits to Check:**
+
 - ECS Fargate: At least 10 concurrent tasks
 - EC2: At least 5 t3.micro instances in your region
 - S3: Unlimited (default)
@@ -322,6 +336,7 @@ make deploy-all
 ```
 
 This single command will:
+
 1. Install all dependencies (frontend, backend, lambda, container, IaC)
 2. Build all components
 3. Deploy AWS infrastructure (VPC, EC2, ECS, S3, Lambda, ALB, etc.)
@@ -486,6 +501,7 @@ redis-server
 ```
 
 Access the application:
+
 - Frontend: http://localhost:3000
 - Backend: http://localhost:5000
 - API Health: http://localhost:5000/health
@@ -497,6 +513,7 @@ The application provides comprehensive automation through Makefile:
 ### Main Deployment Commands
 
 **🚀 Complete Deployment**
+
 ```bash
 make deploy-all        # Deploy everything: infra + backend + databases + services
 make deploy-fast       # Quick update for code changes only
@@ -577,17 +594,20 @@ make post-deploy       # Show configuration after deployment
 ### Example Workflows
 
 **First-Time Deployment:**
+
 ```bash
 make install           # Install dependencies
 make deploy-all        # Deploy everything
 ```
 
 **Code Update:**
+
 ```bash
 make deploy-fast       # Quick update
 ```
 
 **Database Issues:**
+
 ```bash
 make check-mongodb     # Check MongoDB status
 make check-redis       # Check Redis status
@@ -595,6 +615,7 @@ make setup-all-db      # Recreate databases
 ```
 
 **Debugging:**
+
 ```bash
 make status            # Overall status
 make logs-backend      # Backend logs
@@ -612,12 +633,14 @@ make outputs
 ```
 
 **Main Application:**
+
 - **Frontend**: `http://<FRONTEND_PUBLIC_IP>` or `https://<CLOUDFRONT_DOMAIN>`
 - **Backend API**: `http://<ALB_DNS_NAME>` or `http://<BACKEND_IP>:5000`
 - **Health Check**: `http://<BACKEND_IP>:5000/health`
 - **Socket.IO**: `ws://<BACKEND_IP>:5000`
 
 **AWS Resources:**
+
 - **S3 Raw Bucket**: `s3://<RAW_BUCKET_NAME>`
 - **S3 Processed Bucket**: `s3://<PROCESSED_BUCKET_NAME>`
 - **CloudFront Distribution**: `https://<CLOUDFRONT_DOMAIN>`
@@ -625,6 +648,7 @@ make outputs
 - **ECR Repository**: `<ECR_REPOSITORY_URL>`
 
 **Example URLs:**
+
 ```
 Frontend:     http://54.251.192.45
 Backend:      http://alb-vision-1234567890.ap-southeast-1.elb.amazonaws.com
@@ -633,6 +657,7 @@ CloudFront:   https://d3abc123xyz.cloudfront.net
 ```
 
 **Direct Access:**
+
 ```bash
 # SSH to backend
 ssh -i ~/.ssh/vision-sync-backend ubuntu@<BACKEND_IP>
@@ -660,6 +685,7 @@ User Upload → Backend → S3 Raw → SQS → Lambda → ECS Fargate → FFmpeg
 ### Step-by-Step Breakdown
 
 **1. Video Upload Initiation**
+
 ```typescript
 // User requests presigned URL from backend
 POST /api/videos/upload-url
@@ -674,22 +700,24 @@ Body: <video file>
 ```
 
 **2. SQS Message Trigger**
+
 ```javascript
 // Backend sends processing message to SQS
 await sqsService.sendVideoProcessingMessage(
   config.S3_BUCKET_RAW,
   `videos/${videoId}/${filename}`,
-  videoId
+  videoId,
 );
 
 // Updates video status in MongoDB
-status: "PROCESSING"
+status: "PROCESSING";
 
 // Emits Socket.IO event
-socket.emit('video:status', { videoId, status: 'processing' })
+socket.emit("video:status", { videoId, status: "processing" });
 ```
 
 **3. Lambda Orchestration**
+
 ```javascript
 // Lambda triggered by SQS message
 // Determines processing strategy based on file size
@@ -699,19 +727,21 @@ const useSpot = fileSize < 1_000_000_000 && Math.random() < 0.7; // 70% Spot
 await ecs.runTask({
   cluster: ECS_CLUSTER,
   taskDefinition: TASK_DEFINITION,
-  capacityProviderStrategy: useSpot ?
-    [{ capacityProvider: 'FARGATE_SPOT', weight: 1 }] :
-    [{ capacityProvider: 'FARGATE', weight: 1 }],
+  capacityProviderStrategy: useSpot
+    ? [{ capacityProvider: "FARGATE_SPOT", weight: 1 }]
+    : [{ capacityProvider: "FARGATE", weight: 1 }],
   overrides: {
-    containerOverrides: [{
-      environment: [
-        { name: 'VIDEO_ID', value: videoId },
-        { name: 'S3_KEY', value: s3Key },
-        { name: 'WEBHOOK_URL', value: webhookUrl },
-        { name: 'FFMPEG_PRESET', value: useSpot ? 'medium' : 'fast' }
-      ]
-    }]
-  }
+    containerOverrides: [
+      {
+        environment: [
+          { name: "VIDEO_ID", value: videoId },
+          { name: "S3_KEY", value: s3Key },
+          { name: "WEBHOOK_URL", value: webhookUrl },
+          { name: "FFMPEG_PRESET", value: useSpot ? "medium" : "fast" },
+        ],
+      },
+    ],
+  },
 });
 ```
 
@@ -724,9 +754,9 @@ The container performs these steps:
 await downloadFromS3(bucket, key, localPath);
 
 // Process with FFmpeg
-const resolutions = useSpot ?
-  ['720p', '480p', '360p'] :  // Cost-optimized
-  ['1080p', '720p', '480p', '360p'];  // Quality-optimized
+const resolutions = useSpot
+  ? ["720p", "480p", "360p"] // Cost-optimized
+  : ["1080p", "720p", "480p", "360p"]; // Quality-optimized
 
 // For each resolution
 for (const resolution of resolutions) {
@@ -735,13 +765,13 @@ for (const resolution of resolutions) {
     .input(inputPath)
     .size(resolution)
     .videoBitrate(bitrate)
-    .audioBitrate('128k')
+    .audioBitrate("128k")
     .outputOptions([
-      '-f dash',                    // DASH format
-      `-seg_duration ${segmentDuration}`,  // 4-6 second segments
-      '-use_timeline 1',
-      '-use_template 1',
-      '-adaptation_sets "id=0,streams=v id=1,streams=a"'
+      "-f dash", // DASH format
+      `-seg_duration ${segmentDuration}`, // 4-6 second segments
+      "-use_timeline 1",
+      "-use_template 1",
+      '-adaptation_sets "id=0,streams=v id=1,streams=a"',
     ])
     .save(outputPath);
 }
@@ -758,6 +788,7 @@ await uploadToS3(thumbnailPath, processedBucket, `${videoId}/thumbnail.jpg`);
 ```
 
 **5. Webhook Notification**
+
 ```typescript
 // Container sends webhook to backend
 POST <WEBHOOK_URL>/api/webhook/processing-complete
@@ -789,9 +820,10 @@ io.to(videoId).emit('video:ready', {
 ```
 
 **6. Client Playback**
+
 ```typescript
 // Frontend receives Socket.IO event
-socket.on('video:ready', ({ videoId, manifestUrl }) => {
+socket.on("video:ready", ({ videoId, manifestUrl }) => {
   // Initialize DASH player
   const player = dashjs.MediaPlayer().create();
   player.initialize(videoElement, manifestUrl, autoPlay);
@@ -800,9 +832,9 @@ socket.on('video:ready', ({ videoId, manifestUrl }) => {
   player.updateSettings({
     streaming: {
       abr: {
-        autoSwitchBitrate: { video: true }
-      }
-    }
+        autoSwitchBitrate: { video: true },
+      },
+    },
   });
 });
 ```
@@ -811,23 +843,24 @@ socket.on('video:ready', ({ videoId, manifestUrl }) => {
 
 **Spot vs Regular Instance Selection:**
 
-| Condition | Instance Type | Cost Savings | Trade-off |
-|-----------|--------------|--------------|-----------|
-| File < 1GB AND 70% probability | Spot | 70% cheaper | May be interrupted |
-| File ≥ 1GB OR Spot unavailable | Regular | Standard cost | Guaranteed completion |
+| Condition                      | Instance Type | Cost Savings  | Trade-off             |
+| ------------------------------ | ------------- | ------------- | --------------------- |
+| File < 1GB AND 70% probability | Spot          | 70% cheaper   | May be interrupted    |
+| File ≥ 1GB OR Spot unavailable | Regular       | Standard cost | Guaranteed completion |
 
 **Processing Settings by Instance:**
 
-| Setting | Spot Instance | Regular Instance |
-|---------|--------------|------------------|
-| Resolutions | 720p, 480p, 360p | 1080p, 720p, 480p, 360p |
-| FFmpeg Preset | medium | fast |
-| CRF | 25 | 23 |
-| Segment Duration | 6 seconds | 4 seconds |
-| Threads | 1 | 2 |
-| Max Processing Time | 60 minutes | 30 minutes |
+| Setting             | Spot Instance    | Regular Instance        |
+| ------------------- | ---------------- | ----------------------- |
+| Resolutions         | 720p, 480p, 360p | 1080p, 720p, 480p, 360p |
+| FFmpeg Preset       | medium           | fast                    |
+| CRF                 | 25               | 23                      |
+| Segment Duration    | 6 seconds        | 4 seconds               |
+| Threads             | 1                | 2                       |
+| Max Processing Time | 60 minutes       | 30 minutes              |
 
 **Additional Optimizations:**
+
 - S3 Lifecycle: Move old videos to Glacier after 90 days
 - CloudFront: Cache popular videos at edge locations
 - Batch Mode: Process multiple small jobs together
@@ -839,19 +872,27 @@ Users receive live updates throughout the process:
 
 ```typescript
 // Upload progress
-socket.emit('video:uploading', { videoId, progress: 45 });
+socket.emit("video:uploading", { videoId, progress: 45 });
 
 // Processing started
-socket.emit('video:processing', { videoId, stage: 'transcoding' });
+socket.emit("video:processing", { videoId, stage: "transcoding" });
 
 // Processing progress (from container webhooks)
-socket.emit('video:processing', { videoId, stage: 'encoding-720p', progress: 60 });
+socket.emit("video:processing", {
+  videoId,
+  stage: "encoding-720p",
+  progress: 60,
+});
 
 // Processing complete
-socket.emit('video:ready', { videoId, manifestUrl, thumbnailUrl });
+socket.emit("video:ready", { videoId, manifestUrl, thumbnailUrl });
 
 // Error handling
-socket.emit('video:error', { videoId, error: 'Processing failed', retryable: true });
+socket.emit("video:error", {
+  videoId,
+  error: "Processing failed",
+  retryable: true,
+});
 ```
 
 This pipeline ensures efficient, cost-effective video processing with high reliability and excellent user experience.
@@ -863,11 +904,13 @@ Our autoscaling setup distributes backend instances across multiple availability
 ### Multi-AZ Configuration
 
 **Availability Zones:**
+
 - **AZ-A (ap-southeast-1a)**: Public subnet (frontend, ALB) + Private subnet (backend)
 - **AZ-B (ap-southeast-1b)**: Public subnet (ALB) + Private subnet (backend, ECS tasks)
 - **AZ-C (ap-southeast-1c)**: Private subnet (MongoDB replica set, Redis)
 
 **Subnet Layout:**
+
 ```
 Public Subnets:
 ├── AZ-A: 10.10.1.0/24 (Frontend EC2, ALB, Bastion)
@@ -880,6 +923,7 @@ Private Subnets:
 ```
 
 **Backend Auto Scaling Group Configuration:**
+
 ```yaml
 Desired Capacity: 2 instances
 Minimum Size: 1 instance
@@ -890,6 +934,7 @@ Evaluation Period: 2 minutes
 ```
 
 **ECS Auto Scaling Configuration:**
+
 ```yaml
 Service: Video Processing
 Desired Tasks: 0 (scales based on SQS)
@@ -904,6 +949,7 @@ Scale-in Cooldown: 300 seconds
 ### Instance Distribution
 
 **Initial Backend Deployment:**
+
 ```
 2 instances:
 ├── AZ-A: 1 backend instance (private subnet)
@@ -911,6 +957,7 @@ Scale-in Cooldown: 300 seconds
 ```
 
 **Scale-Up Scenarios:**
+
 ```
 3 instances: AZ-A (2), AZ-B (1)
 4 instances: AZ-A (2), AZ-B (2)
@@ -918,6 +965,7 @@ Scale-in Cooldown: 300 seconds
 ```
 
 **ECS Task Distribution:**
+
 ```
 Video processing tasks distribute across:
 ├── Private Subnet AZ-A (10.10.3.0/24)
@@ -933,19 +981,20 @@ Tasks are assigned based on:
 
 **Backend EC2 Auto Scaling:**
 
-| Policy | Metric | Threshold | Duration | Action | Cooldown |
-|--------|--------|-----------|----------|--------|----------|
-| Scale Out | CPU Utilization | > 80% | 2 minutes | +1 instance | 300s |
-| Scale In | CPU Utilization | < 10% | 5 minutes | -1 instance | 300s |
+| Policy    | Metric          | Threshold | Duration  | Action      | Cooldown |
+| --------- | --------------- | --------- | --------- | ----------- | -------- |
+| Scale Out | CPU Utilization | > 80%     | 2 minutes | +1 instance | 300s     |
+| Scale In  | CPU Utilization | < 10%     | 5 minutes | -1 instance | 300s     |
 
 **ECS Task Auto Scaling:**
 
-| Policy | Metric | Threshold | Action | Cooldown |
-|--------|--------|-----------|--------|----------|
-| Scale Out | SQS Messages | > 1 per task | +1 task | 60s |
-| Scale In | SQS Messages | 0 messages | -1 task | 300s |
+| Policy    | Metric       | Threshold    | Action  | Cooldown |
+| --------- | ------------ | ------------ | ------- | -------- |
+| Scale Out | SQS Messages | > 1 per task | +1 task | 60s      |
+| Scale In  | SQS Messages | 0 messages   | -1 task | 300s     |
 
 **Additional Triggers:**
+
 - **Network Throttling**: Scale out if NetworkIn > 10MB/s sustained
 - **Memory Pressure**: Scale out if MemoryUtilization > 85%
 - **Socket Connections**: Scale out if concurrent Socket.IO connections > 1000
@@ -953,6 +1002,7 @@ Tasks are assigned based on:
 ### Fault Tolerance Benefits
 
 **Single AZ Failure Scenario:**
+
 1. **Detection** (< 30 seconds):
    - ALB health checks detect unhealthy instances
    - CloudWatch alarms trigger
@@ -974,11 +1024,13 @@ Tasks are assigned based on:
    - Video processing jobs retry from SQS
 
 **Database Resilience:**
+
 - MongoDB: Automatic failover from Primary to Secondary (< 10 seconds)
 - Redis: Persistence enabled, AOF every second
 - Backup: Automated daily snapshots
 
 **Load Balancer Integration:**
+
 - ALB spans public subnets in AZ-A and AZ-B
 - Cross-zone load balancing enabled
 - Health checks every 30 seconds (3 unhealthy = remove)
@@ -986,6 +1038,7 @@ Tasks are assigned based on:
 - Sticky sessions: Enabled (for Socket.IO)
 
 **Zero-Downtime Deployments:**
+
 ```bash
 # Rolling update strategy
 1. Deploy new version to 1 instance
@@ -1000,6 +1053,7 @@ Tasks are assigned based on:
 ### Common Issues & Solutions
 
 **1. Video Upload Fails**
+
 ```bash
 # Check S3 bucket permissions
 aws s3 ls s3://<RAW_BUCKET_NAME>
@@ -1014,6 +1068,7 @@ make logs-backend
 ```
 
 **2. Video Processing Stuck**
+
 ```bash
 # Check SQS queue for messages
 aws sqs get-queue-attributes \
@@ -1033,6 +1088,7 @@ aws sqs receive-message --queue-url <DLQ_URL>
 ```
 
 **3. Socket.IO Not Connecting**
+
 ```bash
 # Test Socket.IO endpoint
 curl http://<BACKEND_IP>:5000/socket.io/
@@ -1048,6 +1104,7 @@ docker exec redis-server redis-cli ping
 ```
 
 **4. MongoDB Connection Errors**
+
 ```bash
 # Check replica set status
 make check-mongodb
@@ -1064,6 +1121,7 @@ make setup-mongodb
 ```
 
 **5. Redis Connection Issues**
+
 ```bash
 # Check Redis status
 make check-redis
@@ -1078,6 +1136,7 @@ ssh ubuntu@<REDIS_IP> "docker restart redis-server"
 ```
 
 **6. Backend 502/503 Errors**
+
 ```bash
 # Check ALB target health
 aws elbv2 describe-target-health \
@@ -1093,6 +1152,7 @@ make logs-backend
 ```
 
 **7. ECS Tasks Failing**
+
 ```bash
 # View ECS task logs
 make logs-ecs
@@ -1110,6 +1170,7 @@ make container
 ```
 
 **8. CloudFront Not Serving Videos**
+
 ```bash
 # Check S3 processed bucket
 aws s3 ls s3://<PROCESSED_BUCKET_NAME>/ --recursive
@@ -1124,6 +1185,7 @@ aws cloudfront get-distribution --id <DISTRIBUTION_ID>
 ```
 
 **9. High AWS Costs**
+
 ```bash
 # Check running ECS tasks
 aws ecs list-tasks --cluster vision-sync-cluster
@@ -1142,6 +1204,7 @@ aws s3 ls s3://<BUCKET_NAME> --recursive --summarize
 ```
 
 **10. Pulumi State Conflicts**
+
 ```bash
 # Check current stack
 cd IaC && pulumi stack
@@ -1159,6 +1222,7 @@ pulumi refresh
 ### Debug Commands
 
 **System Overview:**
+
 ```bash
 make status                 # Overall deployment status
 make outputs                # All resource URLs
@@ -1166,6 +1230,7 @@ make troubleshoot           # Common issues guide
 ```
 
 **Backend Debugging:**
+
 ```bash
 make logs-backend           # View backend logs
 make ssh-backend            # SSH into backend
@@ -1178,6 +1243,7 @@ docker exec -it vision-sync-backend sh
 ```
 
 **Database Debugging:**
+
 ```bash
 make check-mongodb          # MongoDB status
 make check-redis            # Redis status
@@ -1192,6 +1258,7 @@ docker exec redis-server redis-cli info | grep connected
 ```
 
 **Video Processing Debugging:**
+
 ```bash
 make logs-ecs               # ECS container logs
 make logs-lambda            # Lambda orchestration logs
@@ -1208,6 +1275,7 @@ aws ecs describe-tasks \
 ```
 
 **Network Debugging:**
+
 ```bash
 # Test connectivity from bastion
 ssh -i ~/.ssh/vision-sync-backend ubuntu@<BASTION_IP>
@@ -1223,6 +1291,7 @@ telnet <REDIS_IP> 6379
 ```
 
 **Performance Issues:**
+
 ```bash
 # Check CloudWatch metrics
 aws cloudwatch get-metric-statistics \
@@ -1243,6 +1312,7 @@ aws cloudwatch get-metric-statistics \
 ### Emergency Procedures
 
 **Complete Restart:**
+
 ```bash
 # 1. Stop all services
 make destroy
@@ -1255,11 +1325,13 @@ make deploy-all
 ```
 
 **Backend Only Restart:**
+
 ```bash
 make update-backend
 ```
 
 **Database Reset:**
+
 ```bash
 # WARNING: This deletes all data
 ssh ubuntu@<MONGODB_IP> "docker rm -f mongodb"
@@ -1283,11 +1355,13 @@ Currently, the API uses session-based authentication. Future versions will imple
 ### Rate Limiting
 
 Multiple rate limiting algorithms are implemented:
+
 - **Default**: 100 requests per 15 minutes per IP
 - **Upload endpoint**: 10 requests per 15 minutes per IP
 - **Streaming**: Unlimited (handled by CloudFront)
 
 Rate limit headers:
+
 ```
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
@@ -1297,6 +1371,7 @@ X-RateLimit-Reset: 1736524800
 ### Endpoints
 
 #### Health Check
+
 ```http
 GET /health
 ```
@@ -1304,6 +1379,7 @@ GET /health
 **Description**: Check server health and status
 
 **Response:**
+
 ```json
 {
   "status": "ok",
@@ -1320,12 +1396,14 @@ GET /health
 ```
 
 **Status Codes:**
+
 - `200 OK` - Server is healthy
 - `503 Service Unavailable` - Server or dependencies are down
 
 ### Video Management
 
 #### Get Presigned Upload URL
+
 ```http
 POST /api/videos/upload-url
 Content-Type: application/json
@@ -1334,6 +1412,7 @@ Content-Type: application/json
 **Description**: Request a presigned S3 URL for direct video upload
 
 **Request Body:**
+
 ```json
 {
   "filename": "my-video.mp4",
@@ -1343,11 +1422,13 @@ Content-Type: application/json
 ```
 
 **Validation:**
+
 - `filename`: Required, string, max 255 chars
 - `fileSize`: Required, number, max 5GB (5368709120 bytes)
-- `contentType`: Required, must be video/* MIME type
+- `contentType`: Required, must be video/\* MIME type
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1361,6 +1442,7 @@ Content-Type: application/json
 ```
 
 **Status Codes:**
+
 - `200 OK` - Upload URL generated successfully
 - `400 Bad Request` - Invalid request parameters
 - `413 Payload Too Large` - File size exceeds limit
@@ -1368,31 +1450,33 @@ Content-Type: application/json
 - `500 Internal Server Error` - S3 service error
 
 **Usage Example:**
+
 ```javascript
 // Step 1: Get presigned URL
-const response = await fetch('/api/videos/upload-url', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
+const response = await fetch("/api/videos/upload-url", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
   body: JSON.stringify({
     filename: file.name,
     fileSize: file.size,
-    contentType: file.type
-  })
+    contentType: file.type,
+  }),
 });
 const { uploadUrl, videoId } = await response.json();
 
 // Step 2: Upload directly to S3
 await fetch(uploadUrl, {
-  method: 'PUT',
+  method: "PUT",
   body: file,
-  headers: { 'Content-Type': file.type }
+  headers: { "Content-Type": file.type },
 });
 
 // Step 3: Confirm upload
-await fetch(`/api/videos/${videoId}/confirm`, { method: 'POST' });
+await fetch(`/api/videos/${videoId}/confirm`, { method: "POST" });
 ```
 
 #### Confirm Video Upload
+
 ```http
 POST /api/videos/:videoId/confirm
 ```
@@ -1400,9 +1484,11 @@ POST /api/videos/:videoId/confirm
 **Description**: Trigger video processing after successful S3 upload
 
 **Path Parameters:**
+
 - `videoId`: UUID of the video
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1416,11 +1502,13 @@ POST /api/videos/:videoId/confirm
 ```
 
 **Status Codes:**
+
 - `200 OK` - Processing initiated
 - `404 Not Found` - Video not found
 - `409 Conflict` - Video already processing
 
 #### Get All Videos
+
 ```http
 GET /api/videos
 ```
@@ -1428,6 +1516,7 @@ GET /api/videos
 **Description**: Retrieve list of all uploaded videos
 
 **Query Parameters:**
+
 - `status` (optional): Filter by status (uploading, processing, ready, failed)
 - `limit` (optional): Number of videos per page (default: 20, max: 100)
 - `skip` (optional): Number of videos to skip (pagination)
@@ -1435,6 +1524,7 @@ GET /api/videos
 - `order` (optional): Sort order (asc, desc)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1462,10 +1552,12 @@ GET /api/videos
 ```
 
 **Status Codes:**
+
 - `200 OK` - Videos retrieved successfully
 - `400 Bad Request` - Invalid query parameters
 
 #### Get Single Video
+
 ```http
 GET /api/videos/:videoId
 ```
@@ -1473,9 +1565,11 @@ GET /api/videos/:videoId
 **Description**: Retrieve detailed information about a specific video
 
 **Path Parameters:**
+
 - `videoId`: UUID of the video
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1514,10 +1608,12 @@ GET /api/videos/:videoId
 ```
 
 **Status Codes:**
+
 - `200 OK` - Video found
 - `404 Not Found` - Video does not exist
 
 #### Delete Video
+
 ```http
 DELETE /api/videos/:videoId
 ```
@@ -1525,12 +1621,15 @@ DELETE /api/videos/:videoId
 **Description**: Delete video and all associated files from S3
 
 **Path Parameters:**
+
 - `videoId`: UUID of the video
 
 **Query Parameters:**
+
 - `deleteFiles` (optional): Whether to delete S3 files (default: true)
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1545,11 +1644,13 @@ DELETE /api/videos/:videoId
 ```
 
 **Status Codes:**
+
 - `200 OK` - Video deleted successfully
 - `404 Not Found` - Video not found
 - `500 Internal Server Error` - Failed to delete S3 files
 
 #### Get Video Processing Status
+
 ```http
 GET /api/videos/:videoId/status
 ```
@@ -1557,9 +1658,11 @@ GET /api/videos/:videoId/status
 **Description**: Get real-time processing status (also available via Socket.IO)
 
 **Path Parameters:**
+
 - `videoId`: UUID of the video
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1577,12 +1680,14 @@ GET /api/videos/:videoId/status
 ```
 
 **Video Status Values:**
+
 - `uploading` - File being uploaded to S3
 - `processing` - Video being transcoded
 - `ready` - Video processed and available for streaming
 - `failed` - Processing failed
 
 **Processing Stages:**
+
 - `queued` - Waiting in SQS queue
 - `downloading` - Downloading from S3 raw bucket
 - `analyzing` - Analyzing video metadata
@@ -1594,6 +1699,7 @@ GET /api/videos/:videoId/status
 ### Webhook Endpoints (Internal)
 
 #### Video Processing Complete
+
 ```http
 POST /api/webhook/processing-complete
 Content-Type: application/json
@@ -1603,6 +1709,7 @@ X-Webhook-Secret: <shared_secret>
 **Description**: Called by ECS container when video processing completes
 
 **Request Body:**
+
 ```json
 {
   "videoId": "677f3a5c9e8f1b2c3d4e5f6a",
@@ -1620,6 +1727,7 @@ X-Webhook-Secret: <shared_secret>
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -1632,50 +1740,56 @@ X-Webhook-Secret: <shared_secret>
 VisionSync uses Socket.IO for real-time bidirectional communication.
 
 **Connection:**
-```javascript
-import io from 'socket.io-client';
 
-const socket = io('http://<BACKEND_IP>:5000', {
-  transports: ['websocket', 'polling'],
+```javascript
+import io from "socket.io-client";
+
+const socket = io("http://<BACKEND_IP>:5000", {
+  transports: ["websocket", "polling"],
   reconnection: true,
   reconnectionDelay: 1000,
-  reconnectionAttempts: 5
+  reconnectionAttempts: 5,
 });
 ```
 
 #### Client → Server Events
 
 **Join Video Room:**
+
 ```javascript
-socket.emit('video:join', { videoId: '677f3a5c9e8f1b2c3d4e5f6a' });
+socket.emit("video:join", { videoId: "677f3a5c9e8f1b2c3d4e5f6a" });
 ```
 
 **Leave Video Room:**
+
 ```javascript
-socket.emit('video:leave', { videoId: '677f3a5c9e8f1b2c3d4e5f6a' });
+socket.emit("video:leave", { videoId: "677f3a5c9e8f1b2c3d4e5f6a" });
 ```
 
 #### Server → Client Events
 
 **Video Upload Progress:**
+
 ```javascript
-socket.on('video:upload-progress', (data) => {
+socket.on("video:upload-progress", (data) => {
   // data: { videoId, progress: 45, bytesUploaded: 23592960, totalBytes: 52428800 }
   console.log(`Upload progress: ${data.progress}%`);
 });
 ```
 
 **Video Processing Started:**
+
 ```javascript
-socket.on('video:processing-started', (data) => {
+socket.on("video:processing-started", (data) => {
   // data: { videoId, status: 'processing', estimatedTime: 300 }
-  console.log('Processing started');
+  console.log("Processing started");
 });
 ```
 
 **Video Processing Progress:**
+
 ```javascript
-socket.on('video:processing-progress', (data) => {
+socket.on("video:processing-progress", (data) => {
   // data: {
   //   videoId,
   //   stage: 'encoding-720p',
@@ -1688,8 +1802,9 @@ socket.on('video:processing-progress', (data) => {
 ```
 
 **Video Ready:**
+
 ```javascript
-socket.on('video:ready', (data) => {
+socket.on("video:ready", (data) => {
   // data: {
   //   videoId,
   //   manifestUrl,
@@ -1697,36 +1812,38 @@ socket.on('video:ready', (data) => {
   //   resolutions: ['1080p', '720p', '480p', '360p'],
   //   duration: 120
   // }
-  console.log('Video ready for streaming!');
+  console.log("Video ready for streaming!");
   initializePlayer(data.manifestUrl);
 });
 ```
 
 **Video Processing Failed:**
+
 ```javascript
-socket.on('video:error', (data) => {
+socket.on("video:error", (data) => {
   // data: {
   //   videoId,
   //   error: 'Processing failed: Invalid codec',
   //   retryable: true,
   //   stage: 'encoding-1080p'
   // }
-  console.error('Video processing error:', data.error);
+  console.error("Video processing error:", data.error);
 });
 ```
 
 **Connection Status:**
+
 ```javascript
-socket.on('connect', () => {
-  console.log('Connected to server');
+socket.on("connect", () => {
+  console.log("Connected to server");
 });
 
-socket.on('disconnect', (reason) => {
-  console.log('Disconnected:', reason);
+socket.on("disconnect", (reason) => {
+  console.log("Disconnected:", reason);
 });
 
-socket.on('reconnect', (attemptNumber) => {
-  console.log('Reconnected after', attemptNumber, 'attempts');
+socket.on("reconnect", (attemptNumber) => {
+  console.log("Reconnected after", attemptNumber, "attempts");
 });
 ```
 
@@ -1748,6 +1865,7 @@ All endpoints return errors in a consistent format:
 ```
 
 **Common HTTP Status Codes:**
+
 - `200 OK` - Request successful
 - `201 Created` - Resource created successfully
 - `400 Bad Request` - Invalid request parameters
@@ -1761,6 +1879,7 @@ All endpoints return errors in a consistent format:
 - `503 Service Unavailable` - Service temporarily unavailable
 
 **Common Error Codes:**
+
 - `VIDEO_NOT_FOUND` - Video does not exist
 - `VIDEO_ALREADY_PROCESSING` - Video is already being processed
 - `INVALID_FILE_TYPE` - Unsupported video format
@@ -1776,16 +1895,20 @@ All endpoints return errors in a consistent format:
 ### CORS Configuration
 
 **Allowed Origins:**
+
 - Development: `http://localhost:3000`, `http://localhost:5173`
 - Production: Configured via `CORS_ORIGIN` environment variable
 
 **Allowed Methods:**
+
 - `GET`, `POST`, `PUT`, `DELETE`, `OPTIONS`
 
 **Allowed Headers:**
+
 - `Content-Type`, `Authorization`, `X-Requested-With`
 
 **Exposed Headers:**
+
 - `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
 
 ## Scaling for High Load
@@ -1793,12 +1916,14 @@ All endpoints return errors in a consistent format:
 ### Current Production Features
 
 **Multi-AZ High Availability:**
+
 - **3 Availability Zones**: Distributed across ap-southeast-1a, 1b, 1c
 - **Cross-AZ Load Balancing**: ALB distributes traffic across all healthy instances
 - **Zone-Level Fault Tolerance**: Automatic failover if entire AZ fails
 - **Database Replication**: MongoDB replica set with automatic failover
 
 **Current Capacity:**
+
 - Backend: 1-5 EC2 instances (t3.micro, auto-scaling)
 - Video Processing: 0-10 ECS Fargate tasks (2 vCPU, 4GB RAM each)
 - Concurrent Uploads: ~50 per minute
@@ -1807,6 +1932,7 @@ All endpoints return errors in a consistent format:
 - CDN: CloudFront with global edge locations
 
 **Performance Metrics:**
+
 - Video Upload: Direct to S3, ~50MB/s
 - Processing Time: 3-5 minutes per GB (depends on Spot vs Regular)
 - Streaming Latency: <100ms via CloudFront
@@ -1816,7 +1942,9 @@ All endpoints return errors in a consistent format:
 ### Scaling Strategy by Traffic Level
 
 #### **Stage 1: Current (100-1000 users/day)**
+
 ✅ Current implementation handles this well
+
 - Backend: 2 instances sufficient
 - ECS: Auto-scales based on upload queue
 - Cost: ~$100-200/month
@@ -1824,6 +1952,7 @@ All endpoints return errors in a consistent format:
 #### **Stage 2: Growth (1000-10000 users/day)**
 
 **Backend Scaling:**
+
 ```yaml
 # Increase auto scaling limits
 Backend EC2:
@@ -1840,6 +1969,7 @@ Scaling Triggers:
 ```
 
 **Video Processing:**
+
 ```yaml
 ECS Tasks:
   Min: 0
@@ -1853,6 +1983,7 @@ SQS:
 ```
 
 **Database:**
+
 ```yaml
 MongoDB:
   - Keep replica set
@@ -1871,6 +2002,7 @@ Redis:
 #### **Stage 3: Scale (10000-100000 users/day)**
 
 **Backend Migration:**
+
 ```yaml
 # Move to ECS for better scaling
 ECS Backend Service:
@@ -1889,6 +2021,7 @@ ALB:
 ```
 
 **Video Processing Optimization:**
+
 ```yaml
 # Implement queue prioritization
 SQS:
@@ -1904,6 +2037,7 @@ ECS Tasks:
 ```
 
 **Storage Optimization:**
+
 ```yaml
 S3:
   - Intelligent-Tiering for processed videos
@@ -1918,6 +2052,7 @@ CloudFront:
 ```
 
 **Database Scaling:**
+
 ```yaml
 MongoDB:
   - Migrate to Atlas M30 or DocumentDB
@@ -1937,6 +2072,7 @@ Redis:
 #### **Stage 4: Enterprise (100000+ users/day)**
 
 **Global Distribution:**
+
 ```yaml
 Multi-Region Setup:
   Primary: ap-southeast-1 (Singapore)
@@ -1950,6 +2086,7 @@ Route53:
 ```
 
 **Advanced Features:**
+
 ```yaml
 # Content delivery optimization
 CloudFront:
@@ -1980,6 +2117,7 @@ ElastiCache:
 ```
 
 **Monitoring & Observability:**
+
 ```yaml
 # Enhanced monitoring
 CloudWatch:
@@ -2007,6 +2145,7 @@ DataDog/NewRelic:
 ✅ Efficient video chunking
 
 **Additional Optimizations:**
+
 1. **Reserved Instances**: Save 40-60% on EC2 costs
 2. **S3 Intelligent-Tiering**: Automatic cost optimization
 3. **Compute Savings Plans**: Flexible savings across services
@@ -2018,18 +2157,21 @@ DataDog/NewRelic:
 ### Performance Optimization Roadmap
 
 **Quick Wins (Week 1):**
+
 - [ ] Enable CloudFront compression
 - [ ] Implement API response caching
 - [ ] Optimize database indexes
 - [ ] Add connection pooling
 
 **Medium Term (Month 1):**
+
 - [ ] Implement video thumbnail sprite sheets
 - [ ] Add video preview generation
 - [ ] Implement progressive upload
 - [ ] Add client-side chunking
 
 **Long Term (Quarter 1):**
+
 - [ ] Migrate to MediaConvert for better quality
 - [ ] Implement HLS alongside DASH
 - [ ] Add DRM support
@@ -2038,6 +2180,7 @@ DataDog/NewRelic:
 ### Monitoring Metrics
 
 **Key Metrics to Track:**
+
 ```yaml
 Backend:
   - Request rate (req/s)
@@ -2083,6 +2226,7 @@ Contributions are welcome! Please follow these guidelines:
 5. Open a Pull Request with detailed description
 
 **Development Guidelines:**
+
 - Follow TypeScript best practices
 - Write descriptive commit messages
 - Add tests for new features
@@ -2092,11 +2236,13 @@ Contributions are welcome! Please follow these guidelines:
 ## Support & Community
 
 **Get Help:**
+
 - Open an issue on GitHub for bugs or feature requests
 - Check existing issues before creating new ones
 - Provide detailed information for faster resolution
 
 **Stay Updated:**
+
 - Watch the repository for updates
 - Follow the changelog for new releases
 - Join discussions in the Issues section

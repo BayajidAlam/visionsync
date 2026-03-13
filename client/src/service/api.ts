@@ -1,4 +1,10 @@
-import type { ApiResponse, UploadResponse, Video, VideoStatus } from "../types";
+import type {
+  ApiResponse,
+  DBNotification,
+  UploadResponse,
+  Video,
+  VideoStatus,
+} from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const CLOUDFRONT_URL = import.meta.env.VITE_CLOUDFRONT_URL || "";
@@ -189,6 +195,26 @@ export class ApiService {
   // 🔥 NEW: Webhook health
   async checkWebhookHealth(): Promise<any> {
     return this.fetch<any>("/api/webhook/health");
+  }
+
+  // Notifications — DB-persisted lifecycle events
+  async fetchNotifications(
+    videoId?: string,
+    limit = 50,
+  ): Promise<DBNotification[]> {
+    const params = new URLSearchParams({ limit: String(limit) });
+    if (videoId) params.set("videoId", videoId);
+    const res = await this.fetch<{ data: DBNotification[] }>(
+      `/api/notifications?${params}`,
+    );
+    return res.data;
+  }
+
+  async fetchVideoTimeline(videoId: string): Promise<DBNotification[]> {
+    const res = await this.fetch<{ data: DBNotification[] }>(
+      `/api/notifications/${encodeURIComponent(videoId)}`,
+    );
+    return res.data;
   }
 
   // 🔥 UTILITY METHODS

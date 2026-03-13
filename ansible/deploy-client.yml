@@ -1,0 +1,81 @@
+---
+- name: Deploy frontend client container
+  hosts: frontend
+  become: true
+  gather_facts: true
+  vars:
+    aws_region: "{{ aws_region | default('ap-southeast-1') }}"
+    aws_account: "{{ aws_account | default('366451245016') }}"
+    client_ecr_repo: "{{ client_ecr_repo | default(aws_account ~ '.dkr.ecr.' ~ aws_region ~ '.amazonaws.com/vision-sync-client-dev') }}"
+    client_container_name: "vision-sync-client"
+    client_container_port: 80
+
+  tasks:
+    - name: Install frontend runtime packages (Debian)
+      apt:
+        name:
+          - docker.io
+          - awscli
+          - python3-docker
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Login to ECR from frontend host
+      shell: |
+        aws ecr get-login-password --region {{ aws_region }} | docker login --username AWS --password-stdin {{ client_ecr_repo | regex_replace('/.*', '') }}
+      become_user: ubuntu
+
+    - name: Pull frontend image
+      docker_image:
+        name: "{{ client_ecr_repo }}:latest"
+        source: pull
+
+    - name: Stop existing frontend container
+      docker_container:
+        name: "{{ client_container_name }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Run frontend container
+      docker_container:
+        name: "{{ client_container_name }}"
+        image: "{{ client_ecr_repo }}:latest"
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "{{ client_container_port }}:80"
+
+    - name: Wait for frontend port
+      wait_for:
+        host: 127.0.0.1
+        port: "{{ client_container_port }}"
+        delay: 3
+        timeout: 60
+
+    - name: Verify frontend endpoint
+      uri:
+        url: "http://127.0.0.1:{{ client_container_port }}"
+        method: GET
+      register: frontend_health
+      retries: 5
+      delay: 3
+      until: frontend_health.status == 200
+
+    - name: Show frontend deployment summary
+      debug:
+        msg:
+          - "Frontend image: {{ client_ecr_repo }}:latest"
+          - "Frontend health: {{ frontend_health.status }}"

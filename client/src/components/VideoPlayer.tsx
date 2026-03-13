@@ -199,7 +199,7 @@ export function VideoPlayer({ video, onClose }: VideoPlayerProps) {
 
   if (video.status !== VideoStatus.READY) {
     return (
-      <Card>
+      <Card className="yt-surface border-0 bg-card/80 py-0 shadow-none">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>{video.title}</span>
@@ -224,12 +224,19 @@ export function VideoPlayer({ video, onClose }: VideoPlayerProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="yt-surface border-0 bg-card/80 py-0 shadow-none">
+      <CardHeader className="border-b border-border/70 pb-4 pt-5">
         <CardTitle className="flex items-center justify-between">
-          <span>{video.title}</span>
+          <div>
+            <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+              Now Watching
+            </p>
+            <span className="text-xl">{video.title}</span>
+          </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline">DASH Streaming</Badge>
+            <Badge variant="outline" className="rounded-full">
+              DASH Streaming
+            </Badge>
             <Button variant="outline" size="sm" onClick={onClose}>
               Close
             </Button>
@@ -239,7 +246,7 @@ export function VideoPlayer({ video, onClose }: VideoPlayerProps) {
       <CardContent>
         <div className="space-y-4">
           {/* Video Player */}
-          <div className="relative bg-black rounded-lg overflow-hidden">
+          <div className="relative overflow-hidden rounded-2xl bg-black shadow-xl shadow-slate-900/30">
             <video
               ref={videoRef}
               className="w-full aspect-video"
@@ -270,7 +277,7 @@ export function VideoPlayer({ video, onClose }: VideoPlayerProps) {
                   max={duration || 0}
                   value={currentTime}
                   onChange={handleSeek}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
                 />
                 <div className="flex justify-between text-sm text-muted-foreground">
                   <span>{formatTime(currentTime)}</span>
@@ -304,7 +311,7 @@ export function VideoPlayer({ video, onClose }: VideoPlayerProps) {
                       step="0.1"
                       value={volume}
                       onChange={handleVolumeChange}
-                      className="w-20 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      className="h-2 w-20 cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
                     />
                   </div>
                 </div>
@@ -315,7 +322,7 @@ export function VideoPlayer({ video, onClose }: VideoPlayerProps) {
                     <select
                       value={currentQuality}
                       onChange={(e) => changeQuality(parseInt(e.target.value))}
-                      className="text-sm border rounded px-2 py-1"
+                      className="rounded-md border border-border bg-card px-2 py-1 text-sm text-foreground"
                     >
                       <option value={-1}>Auto</option>
                       {qualityLevels.map((level, index) => (

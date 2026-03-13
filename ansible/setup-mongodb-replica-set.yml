@@ -1,0 +1,100 @@
+---
+- name: Configure MongoDB replica set
+  hosts: mongodb
+  become: true
+  vars:
+    mongodb_conf_path: /etc/mongod.conf
+  tasks:
+    - name: Ensure gnupg and curl are present
+      apt:
+        name:
+          - gnupg
+          - curl
+        state: present
+        update_cache: true
+
+    - name: Add MongoDB apt signing key
+      apt_key:
+        url: https://pgp.mongodb.com/server-7.0.asc
+        state: present
+
+    - name: Add MongoDB apt repository
+      apt_repository:
+        repo: "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu {{ ansible_distribution_release }}/mongodb-org/7.0 multiverse"
+        state: present
+        filename: mongodb-org-7.0
+
+    - name: Install MongoDB packages
+      apt:
+        name: mongodb-org
+        state: present
+        update_cache: true
+
+    - name: Configure mongod for replication and private network binding
+      copy:
+        dest: "{{ mongodb_conf_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          storage:
+            dbPath: /var/lib/mongodb
+          systemLog:
+            destination: file
+            logAppend: true
+            path: /var/log/mongodb/mongod.log
+          net:
+            port: 27017
+            bindIp: 0.0.0.0
+          processManagement:
+            timeZoneInfo: /usr/share/zoneinfo
+          replication:
+            replSetName: rs0
+
+    - name: Enable and restart mongod
+      systemd:
+        name: mongod
+        enabled: true
+        state: restarted
+
+- name: Initialize replica set from primary
+  hosts: mongodb[0]
+  become: true
+  vars:
+    mongodb_members: "{{ groups['mongodb'] }}"
+  tasks:
+    - name: Wait for local mongod to be reachable
+      wait_for:
+        host: 127.0.0.1
+        port: 27017
+        delay: 2
+        timeout: 90
+
+    - name: Get replica set status
+      shell: |
+        mongosh --quiet --eval 'try { rs.status().ok } catch (e) { print(0) }'
+      register: rs_status
+      changed_when: false
+
+    - name: Initialize replica set when not configured
+      shell: |
+        mongosh --quiet --eval '
+          rs.initiate({
+            _id: "rs0",
+            members: [
+              {_id: 0, host: "{{ hostvars[mongodb_members[0]].ansible_host }}:27017"},
+              {_id: 1, host: "{{ hostvars[mongodb_members[1]].ansible_host }}:27017"},
+              {_id: 2, host: "{{ hostvars[mongodb_members[2]].ansible_host }}:27017"}
+            ]
+          })
+        '
+      when: rs_status.stdout.strip() != '1'
+
+    - name: Wait for a primary election
+      shell: |
+        mongosh --quiet --eval 'db.hello().isWritablePrimary ? 1 : 0'
+      register: primary_check
+      retries: 20
+      delay: 3
+      until: primary_check.stdout.strip() == '1'
+      changed_when: false

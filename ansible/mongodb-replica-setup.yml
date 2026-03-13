@@ -5,7 +5,7 @@
   vars:
     mongodb_version: "7.0"
     mongodb_port: 27017
-    replica_set_name: "vision-sync-rs"
+    replica_set_name: "rs0"
     mongodb_data_path: "/data/mongodb"
     mongodb_log_path: "/var/log/mongodb"
 
@@ -86,9 +86,8 @@
   become: yes
   vars:
     replica_set_name: "rs0"
-    primary_ip: "10.0.1.15"
-    secondary1_ip: "10.0.174.69"
-    secondary2_ip: "10.0.22.130"
+    # These are injected via -e flags from the Makefile (from Pulumi outputs)
+    # primary_ip, secondary1_ip, secondary2_ip
 
   tasks:
     - name: Check if replica set is already initialized

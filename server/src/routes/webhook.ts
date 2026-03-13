@@ -3,6 +3,7 @@ import express from "express";
 import { videoService } from "../services/videoService.js";
 import { socketService } from "../socket/socketService.js";
 import { VideoStatus } from "../types/index.js";
+import { saveNotification } from "../services/notificationService.js";
 
 const router = express.Router();
 
@@ -43,6 +44,15 @@ router.post("/processing-complete", async (req, res) => {
         manifestUrl,
         message: "Video processing complete! Ready for streaming.",
       });
+
+      // Persist notification
+      await saveNotification(
+        videoId,
+        "ready",
+        "Video is ready to watch",
+        "Processing finished. Your video is now available for streaming.",
+        "ready",
+      );
     } else if (status === "error" || error) {
       updatedVideo = await videoService.updateVideoStatus(
         videoId,
@@ -54,16 +64,37 @@ router.post("/processing-complete", async (req, res) => {
         error: error || "Processing failed",
         message: "Video processing failed. Please try uploading again.",
       });
+
+      // Persist notification
+      await saveNotification(
+        videoId,
+        "error",
+        "Processing failed",
+        error || "Video processing encountered an error. Please re-upload.",
+        "error",
+      );
     } else {
       updatedVideo = await videoService.updateVideoStatus(
         videoId,
-        status.toUpperCase(),
+        status.toUpperCase() as VideoStatus,
       );
 
+      const isProcessing = status.toLowerCase() === "processing";
       // 🔄 EMIT PROCESSING UPDATE
       socketService.emitVideoStatus(videoId, status.toUpperCase(), {
         message: `Video is ${status}`,
       });
+
+      // Persist processing start notification
+      if (isProcessing) {
+        await saveNotification(
+          videoId,
+          "processing",
+          "Processing started",
+          "Your video is being transcoded into multiple quality levels.",
+          "processing",
+        );
+      }
     }
 
     if (!updatedVideo) {

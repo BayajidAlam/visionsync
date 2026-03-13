@@ -3,6 +3,7 @@ import { setupMiddleware, setupErrorHandling } from "./middleware/index.js";
 import uploadRoutes from "./routes/upload.js";
 import videoRoutes from "./routes/video.js";
 import webhookRoutes from "./routes/webhook.js";
+import notificationRoutes from "./routes/notification.js";
 
 export function createApp(): express.Application {
   const app = express();
@@ -18,6 +19,7 @@ export function createApp(): express.Application {
   app.use("/api/webhook", webhookRoutes);
   app.use("/api/upload", uploadRoutes);
   app.use("/api/videos", videoRoutes);
+  app.use("/api/notifications", notificationRoutes);
 
   // Root endpoint
   app.get("/", (req: express.Request, res: express.Response) => {

@@ -1,0 +1,37 @@
+---
+- name: Validate backend API endpoint for streaming flow
+  hosts: backend
+  gather_facts: false
+  tasks:
+    - name: Check backend health endpoint
+      uri:
+        url: "http://127.0.0.1:5000/health"
+        method: GET
+      register: backend_health
+      retries: 5
+      delay: 3
+      until: backend_health.status == 200
+
+    - name: Show backend streaming status
+      debug:
+        msg:
+          - "Backend health endpoint is reachable"
+          - "CloudFront domain in inventory: {{ cloudfront_domain | default('not-set') }}"
+
+- name: Validate frontend route for streaming flow
+  hosts: frontend
+  gather_facts: false
+  tasks:
+    - name: Check frontend root endpoint
+      uri:
+        url: "http://127.0.0.1"
+        method: GET
+      register: frontend_health
+      retries: 5
+      delay: 3
+      until: frontend_health.status == 200
+
+    - name: Show frontend streaming status
+      debug:
+        msg:
+          - "Frontend endpoint is reachable"

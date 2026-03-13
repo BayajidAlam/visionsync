@@ -10,7 +10,7 @@ import { config } from "../config/env.js";
 import { IVideo, VideoModel } from "../model/video.js";
 import { socketService } from "../socket/socketService.js";
 import { cacheService } from "./cacheService.js";
-
+import { saveNotification } from "./notificationService.js";
 export class VideoService {
   // Convert MongoDB document to API response format
   private mapDocumentToVideo(doc: IVideo): Video {
@@ -32,7 +32,7 @@ export class VideoService {
 
   async createVideo(
     videoId: string,
-    request: CreateVideoRequest
+    request: CreateVideoRequest,
   ): Promise<Video> {
     try {
       const video = new VideoModel({
@@ -53,6 +53,15 @@ export class VideoService {
         message: "Video upload started",
       });
 
+      // Persist notification
+      await saveNotification(
+        videoId,
+        "upload",
+        "Upload started",
+        `File "${request.fileName}" upload has started.`,
+        "uploading",
+      );
+
       return result;
     } catch (error) {
       console.error("Error creating video:", error);
@@ -62,13 +71,13 @@ export class VideoService {
 
   async updateVideoStatus(
     id: string,
-    status: VideoStatus
+    status: VideoStatus,
   ): Promise<Video | null> {
     try {
       const video = await VideoModel.findByIdAndUpdate(
         id,
         { status },
-        { new: true }
+        { new: true },
       );
 
       if (!video) return null;
@@ -104,12 +113,24 @@ export class VideoService {
       // Sending to SQS here would cause DOUBLE processing (S3 event + this call).
       // This endpoint is now purely for UI feedback — it shows the user "Upload complete!"
       // while S3 independently fires the event that starts processing.
-      const uploadedVideo = await this.updateVideoStatus(videoId, VideoStatus.UPLOADED);
+      const uploadedVideo = await this.updateVideoStatus(
+        videoId,
+        VideoStatus.UPLOADED,
+      );
 
       // 📤 EMIT UPLOAD COMPLETE — informs frontend the file reached S3 successfully
       socketService.emitVideoStatus(videoId, "UPLOADED", {
         message: "Upload complete! Processing will start shortly.",
       });
+
+      // Persist notification
+      await saveNotification(
+        videoId,
+        "upload",
+        "Upload complete",
+        "Your file has been stored. Video processing will start automatically.",
+        "uploaded",
+      );
 
       return uploadedVideo;
     } catch (error) {
@@ -128,7 +149,9 @@ export class VideoService {
 
       // Cache miss - fetch from database
       const videos = await VideoModel.find().sort({ createdAt: -1 });
-      const mappedVideos = videos.map((video) => this.mapDocumentToVideo(video));
+      const mappedVideos = videos.map((video) =>
+        this.mapDocumentToVideo(video),
+      );
 
       // 🔥 Cache the results
       await cacheService.cacheVideoList(mappedVideos);
@@ -168,13 +191,13 @@ export class VideoService {
 
   async updateVideo(
     id: string,
-    updates: UpdateVideoRequest
+    updates: UpdateVideoRequest,
   ): Promise<Video | null> {
     try {
       const video = await VideoModel.findByIdAndUpdate(
         id,
         { $set: updates },
-        { new: true }
+        { new: true },
       );
 
       if (!video) {
@@ -223,7 +246,7 @@ export class VideoService {
 
   async markVideoAsReady(
     videoId: string,
-    manifestPath: string
+    manifestPath: string,
   ): Promise<Video | null> {
     try {
       // Build CloudFront URLs
@@ -245,7 +268,7 @@ export class VideoService {
           thumbnailUrl,
           updatedAt: new Date(),
         },
-        { new: true }
+        { new: true },
       );
 
       if (!video) return null;
@@ -303,7 +326,9 @@ export class VideoService {
         ],
       }).sort({ createdAt: -1 });
 
-      const mappedVideos = videos.map((video) => this.mapDocumentToVideo(video));
+      const mappedVideos = videos.map((video) =>
+        this.mapDocumentToVideo(video),
+      );
 
       // 🔥 Cache search results
       await cacheService.cacheSearchResults(query, mappedVideos);
@@ -325,7 +350,9 @@ export class VideoService {
 
       // Cache miss - fetch from database
       const videos = await VideoModel.find({ status }).sort({ createdAt: -1 });
-      const mappedVideos = videos.map((video) => this.mapDocumentToVideo(video));
+      const mappedVideos = videos.map((video) =>
+        this.mapDocumentToVideo(video),
+      );
 
       // 🔥 Cache the results
       await cacheService.cacheVideosByStatus(status, mappedVideos);
@@ -360,10 +387,13 @@ export class VideoService {
         ]),
       ]);
 
-      const byStatus = Object.values(VideoStatus).reduce((acc, status) => {
-        acc[status] = 0;
-        return acc;
-      }, {} as Record<VideoStatus, number>);
+      const byStatus = Object.values(VideoStatus).reduce(
+        (acc, status) => {
+          acc[status] = 0;
+          return acc;
+        },
+        {} as Record<VideoStatus, number>,
+      );
 
       statusCounts.forEach(({ _id, count }) => {
         byStatus[_id as VideoStatus] = count;

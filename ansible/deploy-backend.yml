@@ -1,0 +1,114 @@
+---
+- name: Deploy backend API container
+  hosts: backend
+  become: true
+  gather_facts: true
+  vars:
+    aws_region: "{{ aws_region | default('ap-southeast-1') }}"
+    aws_account: "{{ aws_account | default('366451245016') }}"
+    server_ecr_repo: "{{ server_ecr_repo | default(aws_account ~ '.dkr.ecr.' ~ aws_region ~ '.amazonaws.com/vision-sync-server-dev') }}"
+    backend_container_name: "vision-sync-server"
+    backend_container_port: 5000
+    backend_env_file: "/opt/vision-sync/.env-backend"
+    raw_bucket: "{{ raw_bucket | default('vision-sync-raw-videos-dev') }}"
+    processed_bucket: "{{ processed_bucket | default('vision-sync-processed-videos-dev') }}"
+    sqs_queue_url: "{{ sqs_queue_url | default('') }}"
+    mongodb_uri: "{{ mongodb_uri | default('') }}"
+    redis_url: "{{ redis_url | default('') }}"
+    cloudfront_domain: "{{ cloudfront_domain | default('') }}"
+    frontend_url: "{{ frontend_url | default(alb_url | default('http://localhost')) }}"
+
+  tasks:
+    - name: Validate required backend variables
+      assert:
+        that:
+          - sqs_queue_url | length > 0
+          - mongodb_uri | length > 0
+          - redis_url | length > 0
+        fail_msg: "sqs_queue_url, mongodb_uri, and redis_url are required"
+
+    - name: Install backend runtime packages (Debian)
+      apt:
+        name:
+          - docker.io
+          - awscli
+          - python3-docker
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Add ubuntu user to docker group
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Ensure backend config directory exists
+      file:
+        path: /opt/vision-sync
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+
+    - name: Render backend environment file
+      template:
+        src: production-env.j2
+        dest: "{{ backend_env_file }}"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0600"
+
+    - name: Login to ECR from backend host
+      shell: |
+        aws ecr get-login-password --region {{ aws_region }} | docker login --username AWS --password-stdin {{ server_ecr_repo | regex_replace('/.*', '') }}
+      become_user: ubuntu
+
+    - name: Pull backend image
+      docker_image:
+        name: "{{ server_ecr_repo }}:latest"
+        source: pull
+
+    - name: Stop existing backend container
+      docker_container:
+        name: "{{ backend_container_name }}"
+        state: absent
+      ignore_errors: yes
+
+    - name: Run backend container
+      docker_container:
+        name: "{{ backend_container_name }}"
+        image: "{{ server_ecr_repo }}:latest"
+        state: started
+        restart_policy: unless-stopped
+        ports:
+          - "{{ backend_container_port }}:5000"
+        env_file: "{{ backend_env_file }}"
+
+    - name: Wait for backend port
+      wait_for:
+        host: 127.0.0.1
+        port: "{{ backend_container_port }}"
+        delay: 3
+        timeout: 60
+
+    - name: Verify backend health endpoint
+      uri:
+        url: "http://127.0.0.1:{{ backend_container_port }}/health"
+        method: GET
+      register: backend_health
+      retries: 5
+      delay: 3
+      until: backend_health.status == 200
+
+    - name: Show backend deployment summary
+      debug:
+        msg:
+          - "Backend image: {{ server_ecr_repo }}:latest"
+          - "Backend health: {{ backend_health.status }}"

@@ -43,3 +43,21 @@ export interface VideoUpload {
   bytesUploaded?: number;
   uploadSpeed?: number; // bytes per second
 }
+
+export type NotificationKind =
+  | "upload"
+  | "processing"
+  | "ready"
+  | "error"
+  | "system";
+
+export interface DBNotification {
+  id: string;
+  videoId: string;
+  kind: NotificationKind;
+  title: string;
+  detail: string;
+  status?: string;
+  progress?: number;
+  createdAt: string;
+}

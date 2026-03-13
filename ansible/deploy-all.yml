@@ -58,7 +58,7 @@
         aws ecr get-login-password --region {{ aws_region }} | docker login --username AWS --password-stdin {{ backend_ecr_url | regex_replace('/.*', '') }}
       become_user: "{{ ansible_user }}"
 
-    - name: Login to ECR for frontend  
+    - name: Login to ECR for frontend
       shell: |
         aws ecr get-login-password --region {{ aws_region }} | docker login --username AWS --password-stdin {{ frontend_ecr_url | regex_replace('/.*', '') }}
       become_user: "{{ ansible_user }}"
@@ -70,7 +70,7 @@
         state: directory
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
-        mode: '0755'
+        mode: "0755"
 
     - name: Create Redis configuration
       copy:
@@ -84,7 +84,7 @@
           save 300 10
           save 60 10000
         dest: /opt/redis/redis.conf
-        mode: '0644'
+        mode: "0644"
 
     - name: Stop existing Redis container
       docker_container:
@@ -128,59 +128,59 @@
         content: |
           PORT=5000
           NODE_ENV=production
-          
+
           # AWS Configuration
           AWS_REGION={{ aws_region }}
           AWS_ACCESS_KEY_ID={{ aws_access_key_id }}
           AWS_SECRET_ACCESS_KEY={{ aws_secret_access_key }}
-          
+
           # S3 Configuration
           S3_BUCKET_RAW=vision-sync-raw-videos-dev-p3yfv
           S3_BUCKET_PROCESSED=vision-sync-processed-videos-dev-ha5clq
-          
+
           # SQS Configuration  
           SQS_QUEUE_URL=https://sqs.ap-southeast-1.amazonaws.com/856461101633/vision-sync-video-processing-dev
-          
+
           # MongoDB Configuration (Atlas)
           MONGODB_URI=mongodb+srv://Uni2_User:InJwvIcMTmvvBZ7x@myclaster-1.wxhqp81.mongodb.net/?retryWrites=true&w=majority&appName=MyClaster-1
           MONGODB_CONNECTION_POOL_SIZE=5
           MONGODB_MAX_IDLE_TIME=30000
           MONGODB_SERVER_SELECTION_TIMEOUT=5000
-          
+
           # Redis Configuration
           REDIS_URL=redis://:{{ redis_password }}@localhost:6379
-          
+
           # CloudFront Configuration
           CLOUDFRONT_DISTRIBUTION_ID=E23G6UQ3NJNAWT
           CLOUDFRONT_DOMAIN=d2r57olr9c856o.cloudfront.net
-          
+
           # ECS Configuration
           ECS_CLUSTER_NAME=vision-sync-processing-dev
           ECS_TASK_DEFINITION=vision-sync-video-processing-dev
           ECS_USE_FARGATE_SPOT=true
           ECS_TASK_CPU=1024
           ECS_TASK_MEMORY=2048
-          
+
           # Video Processing
           FFMPEG_PRESET=fast
           FFMPEG_THREADS=2
           PROCESSING_PRIORITY=normal
           ENABLE_BATCH_PROCESSING=true
-          
+
           # Rate Limiting
           RATE_LIMIT_WINDOW_MS=900000
           RATE_LIMIT_MAX_REQUESTS=100
           UPLOAD_RATE_LIMIT_MAX=5
           RATE_LIMIT_STORE=redis
-          
+
           # CORS Configuration
           FRONTEND_URL=http://{{ ansible_default_ipv4.address }}
-          
+
           # Monitoring
           LOG_LEVEL=info
           LOG_RETENTION_DAYS=7
           METRICS_ENABLED=false
-          
+
           # Webhook URL
           WEBHOOK_URL=http://{{ ansible_default_ipv4.address }}:5000/api/webhook/processing-complete
         dest: /home/{{ ansible_user }}/.env-backend
@@ -199,7 +199,7 @@
         networks:
           - name: bridge
 
-    # Frontend Deployment  
+    # Frontend Deployment
     - name: Stop existing frontend container
       docker_container:
         name: vision-sync-frontend

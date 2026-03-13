@@ -1,0 +1,8 @@
+---
+- name: Deploy backend container stack
+  import_playbook: deploy-backend.yml
+  tags: ["backend", "containers"]
+
+- name: Deploy frontend container stack
+  import_playbook: deploy-client.yml
+  tags: ["frontend", "containers"]

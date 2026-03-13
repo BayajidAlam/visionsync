@@ -5,230 +5,249 @@
 ```
 Browser
   │
-  ├─► ALB :80 ──────────────────────────────────────────────────────┐
-  │    │  default → Frontend TG (port 80)                           │
-  │    │  /api/*  → Backend  TG (port 5000)                         │
-  │    │  /socket.io/* → Backend TG (port 5000)                     │
-  │    │                                                             │
-  │    ├─► Frontend EC2 (54.254.240.227)                            │
-  │    │    └─ vision-sync-client  container :80   (nginx + React)  │
-  │    │                                                             │
-  │    └─► Backend  EC2 (10.0.42.158 private)                       │
-  │         └─ vision-sync-server  container :5000 (Node/Express)   │
-  │                                                                  │
-  └─► CloudFront d11zonfo5y8dyu.cloudfront.net → S3 processed videos
+  ├─► ALB :80 ─────────────────────────────────────────────────────────┐
+  │    │  default → Frontend TG (port 80)                              │
+  │    │  /api/*  → Backend  TG (port 5000)                            │
+  │    │  /socket.io/* → Backend TG (port 5000)                        │
+  │    │                                                                │
+  │    ├─► Frontend EC2 (public IP, port 80) — nginx + React SPA       │
+  │    │                                                                │
+  │    └─► Backend  EC2 (private IP, port 5000) — Node.js/Express      │
+  │                                                                     │
+  └─► CloudFront → S3 processed videos (DASH streaming)
 ```
 
-| Component | Host | Port | Access |
-|-----------|------|------|--------|
-| Frontend EC2 | 54.254.240.227 | 80 | Direct SSH |
-| Backend EC2 | 10.0.42.158 (private) | 5000 | Via bastion 52.77.164.183 |
-| Bastion | 52.77.164.183 | 22 | Direct SSH |
-| ALB | vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com | 80 | Public |
-| CloudFront | d11zonfo5y8dyu.cloudfront.net | 443 | Public (video CDN) |
+Private resources (Backend EC2, MongoDB × 3, Redis) are in private subnets.
+All SSH access goes through the Bastion host.
+All IPs are fetched dynamically from `pulumi stack output` — never hardcoded.
+
+---
+
+## Production recovery notes (2026-03-14)
+
+The running environment was stabilized with the following sequence:
+
+1. Confirmed current infrastructure endpoints from Pulumi stack outputs (bastion, backend private IP, frontend public IP, ALB, MongoDB, Redis).
+2. Rebuilt and pushed the backend image to ECR.
+3. Deployed backend through bastion to private EC2 and validated container startup.
+4. Deployed frontend on the frontend EC2 by building with `VITE_API_URL` set to the current ALB URL.
+5. Diagnosed backend restart loop (`MongooseServerSelectionError`) and identified that MongoDB and Redis services were not initialized on private nodes.
+6. Ran Ansible from bastion to:
+
+- Configure MongoDB on all three nodes and initialize replica set `rs0`.
+- Configure Redis on private Redis node.
+
+7. Revalidated service connectivity from backend to MongoDB/Redis.
+8. Confirmed final health:
+
+- Backend container status healthy.
+- Frontend container running on port 80.
+- ALB `/health` returned `{"status":"ok"}`.
+- ALB root (`/`) returned HTTP 200.
+
+### Root causes addressed
+
+- Missing root `Makefile` in current workspace snapshot prevented standard deployment targets.
+- Several Ansible files were empty, so database/bootstrap workflow was incomplete.
+- Stale hardcoded host values in legacy scripts did not match current Pulumi-managed infrastructure.
+
+### Guardrails applied
+
+- Deployment now uses Pulumi outputs as the source of truth for runtime endpoints.
+- Bastion-mediated Ansible flow is used for private subnet resources.
+- Frontend build is performed with explicit `VITE_API_URL` to avoid localhost regressions.
 
 ---
 
 ## Prerequisites
 
-```bash
-# Tools needed locally
-docker          # Docker Desktop (for building server image)
-aws             # AWS CLI, configured with ap-southeast-1
-ssh key         # ~/.ssh/vision-sync-backend
+| Tool                  | Purpose                                                          |
+| --------------------- | ---------------------------------------------------------------- |
+| AWS CLI (`aws`)       | ECR auth, stack queries                                          |
+| Docker Desktop        | Building server image locally                                    |
+| Pulumi CLI (`pulumi`) | Infrastructure as code                                           |
+| GNU Make              | Orchestration (`winget install GnuWin32.Make`)                   |
+| SSH key               | `~/.ssh/vision-sync-backend` (private key matching AWS key pair) |
 
-# Verify AWS access
+```bash
+# Verify tools
 aws sts get-caller-identity
+pulumi version
+docker info
 ```
 
 ---
 
-## One-command deployment
+## Full deployment sequence (fresh clone)
 
 ```bash
-make deploy-prod          # deploys both server + client
+# 1. Install dependencies
+make install
+
+# 2. Deploy AWS infrastructure with Pulumi
+#    Creates EC2s, VPC, ALB, S3, SQS, ECS, CloudFront, etc.
+make deploy
+
+# 3. Bootstrap Ansible on the bastion (run once per deployment)
+#    - Copies ansible/ playbooks to bastion
+#    - Copies SSH key to bastion
+#    - Installs Ansible on bastion
+make ansible-bootstrap
+
+# 4. Set up MongoDB replica set (runs Ansible on bastion)
+make setup-mongodb
+
+# 5. Set up Redis (runs Ansible on bastion)
+make setup-redis
+
+# 6. Build + push server image to ECR, deploy to backend EC2
+make deploy-server
+
+# 7. Build + deploy React frontend to frontend EC2
+make deploy-client
+
+# 8. Verify everything is running
+make status-prod
 ```
 
-Or separately:
+---
+
+## Why Ansible runs on the bastion
+
+MongoDB and Redis EC2 instances are in **private subnets** — they have no internet access
+and cannot be reached directly from your laptop. The bastion host (in the public subnet)
+can reach them via VPC routing. So:
+
+1. `make ansible-bootstrap` copies playbooks + SSH key to the bastion
+2. `make setup-mongodb` / `make setup-redis` SSH to the bastion and run `ansible-playbook` there
+3. Ansible then connects from bastion → private MongoDB/Redis hosts directly
+
+---
+
+## Make targets reference
 
 ```bash
-make deploy-server        # Node.js API only
-make deploy-client        # React frontend only
+# Infrastructure
+make deploy             # pulumi up + update server/.env
+make update-env         # sync server/.env from Pulumi outputs (no infra changes)
+make outputs            # show all Pulumi stack outputs + quick IP reference
+make destroy            # destroy all AWS resources (prompts for confirmation)
+
+# Ansible / databases
+make ansible-bootstrap  # first-time bastion setup (run after each pulumi up)
+make ansible-sync       # re-sync ansible/ to bastion after local edits
+make setup-mongodb      # create MongoDB replica set via Ansible
+make check-mongodb      # verify replica set health
+make setup-redis        # deploy Redis container via Ansible
+make check-redis        # verify Redis is responding
+
+# Application deployment
+make deploy-server      # build Docker image → ECR → restart on backend EC2
+make deploy-client      # package client → frontend EC2 → docker build + run
+make deploy-prod        # deploy-server + deploy-client + status check
+
+# Operations
+make status-prod        # docker ps on both EC2s + ALB health
+make logs-server-prod   # tail backend container logs (Ctrl+C)
+make logs-frontend      # tail frontend container logs (Ctrl+C)
+make ssh-frontend       # SSH into frontend EC2
+make ssh-backend-prod   # SSH into backend EC2 via bastion
+make logs-lambda        # tail Lambda logs (SQS video trigger)
+make logs-ecs           # tail ECS task logs (FFmpeg transcoding)
+
+# Local dev
+make install            # npm install across all packages
+make build              # build all packages
+make dev                # run server + client locally
+make clean              # remove dist/ and caches
+```
+
+---
+
+## How IPs are resolved (important for re-deployments)
+
+All IPs are fetched **at make time** from `pulumi stack output`:
+
+```makefile
+BASTION_IP       := $(shell cd IaC && pulumi stack output bastionPublicIp)
+BACKEND_EC2_IP   := $(shell cd IaC && pulumi stack output backendPrivateIp)
+MONGO_PRIMARY    := $(shell cd IaC && pulumi stack output mongodbPrimaryIp)
+MONGO_SECONDARY1 := $(shell cd IaC && pulumi stack output mongodbSecondary1Ip)
+MONGO_SECONDARY2 := $(shell cd IaC && pulumi stack output mongodbSecondary2Ip)
+REDIS_IP         := $(shell cd IaC && pulumi stack output redisIp)
+```
+
+After `pulumi up` (which may assign new private IPs to EC2 instances), run:
+
+```bash
+make deploy          # re-runs pulumi up and refreshes all outputs
+make ansible-bootstrap  # re-sync to bastion with updated IPs
+make setup-mongodb
+make setup-redis
 ```
 
 ---
 
 ## Step-by-step breakdown
 
-### 1. Deploy the server (Node.js API)
+### `make deploy-server`
 
-`make deploy-server` does the following automatically:
+1. `docker build` server image locally
+2. Push to ECR (`vision-sync-server-dev`)
+3. SSH bastion → backend EC2: ECR login, `docker pull`, stop old container, start new one
+4. All env vars injected at runtime (MONGODB_URI, REDIS_URL, etc. from Pulumi outputs)
 
-1. Builds `server/` as a Docker image locally  
-2. Pushes to ECR (`vision-sync-server-dev`)  
-3. SSHes via bastion → backend EC2, pulls the new image  
-4. Stops the old container, starts a new one with all env vars injected
+### `make deploy-client`
 
-The environment variables injected at runtime (in the Makefile):
-
-| Variable | Value |
-|----------|-------|
-| `PORT` | 5000 |
-| `NODE_ENV` | production |
-| `AWS_REGION` | ap-southeast-1 |
-| `S3_BUCKET_RAW` | vision-sync-raw-videos-dev |
-| `S3_BUCKET_PROCESSED` | vision-sync-processed-videos-dev |
-| `SQS_QUEUE_URL` | https://sqs.ap-southeast-1.amazonaws.com/366451245016/vision-sync-video-processing-dev |
-| `MONGODB_URI` | mongodb://10.0.1.15:27017,10.0.174.69:27017,10.0.22.130:27017/vision-sync?replicaSet=rs0 |
-| `REDIS_URL` | redis://:VisionSyncRedis2024!@10.0.35.200:6379 |
-| `CLOUDFRONT_DOMAIN` | d11zonfo5y8dyu.cloudfront.net |
-| `FRONTEND_URL` | http://vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com |
-
-### 2. Deploy the client (React frontend)
-
-`make deploy-client` does the following automatically:
-
-1. Tarballs `client/` (excluding `node_modules` and `dist`)
-2. SCPs the tarball to the frontend EC2
-3. SSHes into the frontend EC2, runs `docker build` there with `VITE_API_URL` set to the ALB URL
-4. Stops the old container, starts the new one on port 80
+1. Tarballs `client/` (no `node_modules`, no `dist`)
+2. `scp` to frontend EC2
+3. SSH to frontend EC2: `docker build` with `VITE_API_URL=$(ALB_URL)` baked in
+4. Stops old container, starts new one on port 80
 
 > **Why build on the frontend EC2?**  
-> `VITE_API_URL` is baked into the React bundle at build time (Vite replaces it statically).  
-> Building on the frontend EC2 avoids pushing a 1GB+ image through ECR and works regardless  
-> of Docker Desktop state on your local machine. The frontend EC2 IAM role cannot push to  
-> ECR anyway, so this is the correct approach.
-
----
-
-## Useful make targets
-
-```bash
-# Deployment
-make deploy-prod          # deploy server + client
-make deploy-server        # server only
-make deploy-client        # client only
-
-# Monitoring
-make status-prod          # docker ps on both EC2s + ALB health
-make logs-frontend        # tail nginx/client logs (Ctrl+C to stop)
-make logs-server-prod     # tail Node.js server logs (Ctrl+C to stop)
-
-# SSH access
-make ssh-frontend         # SSH into frontend EC2
-make ssh-backend-prod     # SSH into backend EC2 via bastion
-```
-
----
-
-## Manual commands (if Make is unavailable)
-
-### Deploy client manually
-
-```bash
-# Pack and SCP
-tar --exclude='client/node_modules' --exclude='client/dist' \
-    -czf /tmp/vsync-client.tar.gz client/
-
-scp -i ~/.ssh/vision-sync-backend /tmp/vsync-client.tar.gz \
-    ubuntu@54.254.240.227:~/client-src.tar.gz
-
-# Build and run on frontend EC2
-ssh -i ~/.ssh/vision-sync-backend ubuntu@54.254.240.227
-  rm -rf ~/client-build && mkdir ~/client-build
-  tar -xzf ~/client-src.tar.gz -C ~/client-build --strip-components=1
-  cd ~/client-build
-  docker build \
-    --build-arg VITE_API_URL=http://vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com \
-    -t vision-sync-client:latest .
-  docker stop vision-sync-client 2>/dev/null; docker rm vision-sync-client 2>/dev/null
-  docker run -d --name vision-sync-client --restart unless-stopped \
-    -p 80:80 vision-sync-client:latest
-```
-
-### Deploy server manually
-
-```bash
-# Build and push from local machine
-cd server
-docker build -t vision-sync-server:latest .
-aws ecr get-login-password --region ap-southeast-1 | \
-  docker login --username AWS --password-stdin \
-  366451245016.dkr.ecr.ap-southeast-1.amazonaws.com
-docker tag vision-sync-server:latest \
-  366451245016.dkr.ecr.ap-southeast-1.amazonaws.com/vision-sync-server-dev:latest
-docker push 366451245016.dkr.ecr.ap-southeast-1.amazonaws.com/vision-sync-server-dev:latest
-
-# Pull and restart on backend EC2 (via bastion)
-ssh -i ~/.ssh/vision-sync-backend ubuntu@52.77.164.183
-  ssh -i ~/.ssh/vision-sync-backend ubuntu@10.0.42.158
-    ECR="366451245016.dkr.ecr.ap-southeast-1.amazonaws.com"
-    aws ecr get-login-password --region ap-southeast-1 | \
-      docker login --username AWS --password-stdin $ECR
-    docker pull $ECR/vision-sync-server-dev:latest
-    docker stop vision-sync-server; docker rm vision-sync-server
-    docker run -d --name vision-sync-server --restart unless-stopped \
-      -p 5000:5000 \
-      -e PORT=5000 -e NODE_ENV=production -e AWS_REGION=ap-southeast-1 \
-      -e S3_BUCKET_RAW=vision-sync-raw-videos-dev \
-      -e S3_BUCKET_PROCESSED=vision-sync-processed-videos-dev \
-      -e SQS_QUEUE_URL="https://sqs.ap-southeast-1.amazonaws.com/366451245016/vision-sync-video-processing-dev" \
-      -e MONGODB_URI="mongodb://10.0.1.15:27017,10.0.174.69:27017,10.0.22.130:27017/vision-sync?replicaSet=rs0" \
-      -e "REDIS_URL=redis://:VisionSyncRedis2024!@10.0.35.200:6379" \
-      -e CLOUDFRONT_DOMAIN=d11zonfo5y8dyu.cloudfront.net \
-      -e FRONTEND_URL=http://vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com \
-      $ECR/vision-sync-server-dev:latest
-```
+> `VITE_API_URL` is replaced statically at build time. Building on the EC2 avoids pushing
+> a large image through ECR and correctly captures the ALB URL at the time of deployment.
 
 ---
 
 ## Verify the deployment
 
 ```bash
-# 1. ALB serves the React app
-curl -s http://vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com/ | grep 'dashjs\|index-'
+# ALB health check
+make status-prod
 
-# 2. API health check
-curl http://vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com/health
-
-# 3. API URL baked into the bundle (should NOT say localhost)
-curl -s http://vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com/ \
-  | grep -o 'src=.*js' \
-  | xargs -I{} curl -s "http://vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com/{}" \
-  | grep -o 'vision-sync-alb\|localhost:5000'
+# Or manually:
+ALB=<ALB DNS from 'make outputs'>
+curl http://$ALB/health              # {"status":"ok",...}
+curl http://$ALB/                    # React app HTML
 ```
 
 ---
 
-## Key lessons learned (things to avoid)
+## Key lessons learned
 
-| Mistake | Correct approach |
-|---------|-----------------|
-| `docker build` without `--build-arg VITE_API_URL=...` | Always pass the ALB URL as build arg |
-| Deploying client to backend EC2 (port 3000) | ALB routes port 80 to **frontend EC2** |
-| `import dashjs from 'dashjs'` via bundler | Load dashjs via `<script src="/dashjs.min.js">` UMD |
-| Missing `REDIS_URL` password | `redis://:VisionSyncRedis2024!@10.0.35.200:6379` |
-| Missing `app.set('trust proxy', 1)` in Express | Required for correct rate-limiting behind ALB |
-| No `Cache-Control` on `index.html` | nginx must return `no-store` for `index.html` |
+| Mistake                                               | Correct approach                                 |
+| ----------------------------------------------------- | ------------------------------------------------ |
+| Hardcoded IPs in Makefile                             | All IPs from `pulumi stack output` (dynamic)     |
+| Running Ansible on Windows                            | Ansible runs on the Linux bastion via SSH        |
+| ProxyJump for Ansible                                 | Not needed — Ansible control node IS the bastion |
+| `docker build` without `--build-arg VITE_API_URL=...` | Always pass ALB URL as build arg                 |
+| Missing `app.set('trust proxy', 1)` in Express        | Required behind ALB for rate limiting            |
+| `REDIS_URL` without password                          | `redis://:VisionSyncRedis2024!@<REDIS_IP>:6379`  |
+| Using `$(HOME)` in Makefile on Windows                | Use `$(shell echo ~/.ssh/...)` instead           |
+| Make without `SHELL := /path/to/bash` on Windows      | Git Bash path needed for aws/ssh/scp             |
 
 ---
 
 ## Infrastructure (Pulumi)
 
-All infrastructure is defined in `IaC/` using Pulumi (TypeScript).
+All infrastructure is in `IaC/` (TypeScript + Pulumi).
 
 ```bash
-# First time setup
-cd IaC
-npm install
-pulumi login
+cd IaC && npm install
+pulumi login          # first time
 pulumi stack select dev
-
-# Deploy infrastructure
-pulumi up
-
-# Tear down everything
-pulumi destroy --yes
+pulumi up             # deploy
+pulumi stack output   # see all outputs
+pulumi destroy --yes  # tear down everything
 ```
-
-After `pulumi up`, update the variables at the top of the `Makefile` if any IPs or URLs changed.

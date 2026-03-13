@@ -67,6 +67,12 @@ import {
   mongodbInstance3,
 } from "./src/database/mongodb";
 import { redisInstance } from "./src/database/redis";
+import {
+  rawVideosBucket,
+  processedVideosBucket,
+  distribution,
+} from "./src/storage/s3";
+import { videoProcessingQueue } from "./src/messaging/sqs";
 
 // Export important connection information
 export const bastionPublicIp = bastionEip.publicIp;
@@ -82,4 +88,17 @@ export const mongodbNodes = {
   secondary2: mongodbInstance3.privateIp,
 };
 
+// Individual string exports for Makefile dynamic IP resolution
+export const mongodbPrimaryIp = mongodbInstance1.privateIp;
+export const mongodbSecondary1Ip = mongodbInstance2.privateIp;
+export const mongodbSecondary2Ip = mongodbInstance3.privateIp;
+export const redisIp = redisInstance.privateIp;
+
 export const redisEndpoint = redisInstance.privateIp;
+
+// Simple string exports for Makefile / update-env
+export const rawVideosBucketName = rawVideosBucket.bucket;
+export const processedVideosBucketName = processedVideosBucket.bucket;
+export const videoProcessingQueueUrl = videoProcessingQueue.url;
+export const cloudfrontDistributionId = distribution.id;
+export const cloudfrontDomain = distribution.domainName;

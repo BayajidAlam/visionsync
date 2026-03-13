@@ -1,14 +1,15 @@
 # VS Code Agent Files (.agent.md)
 
-These `.agent.md` files enable **VS Code Copilot to automatically select the right agent** based on which files you're working on.
+These `.agent.md` files enable **VS Code Copilot to route work to specialized agents** through auto-selection or manual invocation.
 
 ## 📁 Agent Files
 
-| File                                           | Triggers When Working On                              | Purpose                                                                                           |
-| ---------------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| [app-agent.agent.md](app-agent.agent.md)       | `server/**`, `container/**`, `lambda/**`, `client/**` | Loads nodejs-backend, ffmpeg-video-pipeline skills; enforces AWS SDK v3, Socket.IO, SIGTERM rules |
-| [infra-agent.agent.md](infra-agent.agent.md)   | `IaC/**`, `ansible/**`, `Makefile`, `deploy*.sh`      | Loads pulumi-best-practices, ansible-playbooks, makefile-automation; enforces deployment order    |
-| [review-agent.agent.md](review-agent.agent.md) | `**/*.ts`, `**/*.tsx`, `**/*.yml`                     | Read-only review mode; loads code-reviewer, aws-solution-architect, aws-diagrams                  |
+| File                                           | Triggers When Working On                              | Purpose                                                                                            |
+| ---------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| [app-agent.agent.md](app-agent.agent.md)       | `server/**`, `container/**`, `lambda/**`, `client/**` | Loads nodejs-backend, ffmpeg-video-pipeline skills; enforces AWS SDK v3, Socket.IO, SIGTERM rules  |
+| [infra-agent.agent.md](infra-agent.agent.md)   | `IaC/**`, `ansible/**`, `Makefile`, `deploy*.sh`      | Loads pulumi-best-practices, ansible-playbooks, makefile-automation; enforces deployment order     |
+| [review-agent.agent.md](review-agent.agent.md) | `**/*.ts`, `**/*.tsx`, `**/*.yml`                     | Read-only review mode; loads code-reviewer, aws-solution-architect, aws-diagrams                   |
+| [docs-agent.agent.md](docs-agent.agent.md)     | Manual only: `@docs-agent` or `/docs-agent`           | Generates architecture docs, enforces Excalidraw flow output, and supports AWS icon cloud diagrams |
 
 ## 🚀 How It Works
 
@@ -28,6 +29,7 @@ In Copilot Chat, type:
 @app-agent help me add video upload validation
 @infra-agent what's the deployment order?
 @review-agent review this PR
+@docs-agent create architecture and data-flow documentation for VisionSync
 ```
 
 Or use the custom commands in [../.vscode/settings.json](../.vscode/settings.json):
@@ -36,6 +38,12 @@ Or use the custom commands in [../.vscode/settings.json](../.vscode/settings.jso
 /app-agent help me add a route
 /infra-agent deploy the app
 /review-agent check for security issues
+```
+
+Or use workflow files in `.agents/workflows/`:
+
+```
+/docs-agent generate architecture documentation with Excalidraw data flow
 ```
 
 ## 📋 YAML Frontmatter Explained
@@ -73,12 +81,12 @@ To modify agent behavior:
 
 These `.agent.md` files **complement** the existing setup:
 
-| Config                            | Purpose                               | When to Use                                     |
-| --------------------------------- | ------------------------------------- | ----------------------------------------------- |
-| `.agents/workflows/*.md`          | Antigravity AI slash commands         | When using Antigravity extension                |
-| `.github/copilot-instructions.md` | Global Copilot project context        | Auto-loaded by Copilot                          |
-| `.vscode/settings.json`           | Custom Copilot chat commands          | Type `/app-agent`, `/infra-agent`, etc.         |
-| `.agents/*.agent.md`              | **Auto-selecting specialized agents** | **Auto-activates based on file you're editing** |
+| Config                            | Purpose                                 | When to Use                                               |
+| --------------------------------- | --------------------------------------- | --------------------------------------------------------- |
+| `.agents/workflows/*.md`          | Antigravity AI slash commands           | When using Antigravity extension                          |
+| `.github/copilot-instructions.md` | Global Copilot project context          | Auto-loaded by Copilot                                    |
+| `.vscode/settings.json`           | Custom Copilot chat commands            | Type `/app-agent`, `/infra-agent`, etc.                   |
+| `.agents/*.agent.md`              | **Specialized agents (auto or manual)** | **Auto-activates by file match or manual `@agent` usage** |
 
 All of them reference the shared [CONTEXT.md](CONTEXT.md) for consistency.
 
@@ -87,7 +95,7 @@ All of them reference the shared [CONTEXT.md](CONTEXT.md) for consistency.
 - [VS Code Agent Customization Docs](https://code.visualstudio.com/docs/copilot/copilot-customization)
 - [GitHub Copilot Chat Commands](https://docs.github.com/en/copilot/using-github-copilot/using-github-copilot-chat)
 - [VisionSync Context](CONTEXT.md)
-- [Skills Directory](../.github/skills/)
+- [Skills Directory](./skills/)
 
 ## 💡 Tips
 

@@ -1,0 +1,20 @@
+NODE_ENV=production
+PORT={{ backend_port | default(5000) }}
+
+# AWS
+AWS_REGION={{ aws_region | default('ap-southeast-1') }}
+S3_BUCKET_RAW={{ raw_bucket }}
+S3_BUCKET_PROCESSED={{ processed_bucket }}
+SQS_QUEUE_URL={{ sqs_queue_url }}
+
+# Database and cache
+MONGODB_URI={{ mongodb_uri }}
+REDIS_URL={{ redis_url }}
+
+# Frontend and CDN
+FRONTEND_URL={{ frontend_url }}
+CLOUDFRONT_DOMAIN={{ cloudfront_domain | default('') }}
+
+# Optional tuning
+MAX_FILE_SIZE={{ max_file_size | default('10737418240') }}
+UPLOAD_URL_EXPIRES={{ upload_url_expires | default(3600) }}
