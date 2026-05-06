@@ -17,10 +17,6 @@ export class ApiService {
     this.baseUrl = API_BASE_URL;
     this.cloudfrontUrl = CLOUDFRONT_URL;
 
-    console.log("API Service initialized:", {
-      api: this.baseUrl,
-      cloudfront: this.cloudfrontUrl,
-    });
   }
   private async fetch<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const response = await fetch(`${this.baseUrl}${endpoint}`, {

@@ -483,6 +483,17 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
     }
   }, [isFullscreen]);
 
+  const seek = useCallback((delta: number) => {
+    if (!videoRef.current) return;
+    const newTime = Math.max(
+      0,
+      Math.min(videoRef.current.duration || 0, videoRef.current.currentTime + delta),
+    );
+    videoRef.current.currentTime = newTime;
+    setCurrentTime(newTime);
+    showControlsTemporarily();
+  }, [showControlsTemporarily]);
+
   const togglePiP = useCallback(async () => {
     if (!videoRef.current) return;
     try {
@@ -556,6 +567,39 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
     },
     [qualityLevels],
   );
+
+  // ── Keyboard shortcuts ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isReady) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      switch (e.key) {
+        case " ":
+        case "k":
+          e.preventDefault();
+          togglePlay();
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          seek(-5);
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          seek(5);
+          break;
+        case "m":
+        case "M":
+          toggleMute();
+          break;
+        case "f":
+        case "F":
+          toggleFullscreen();
+          break;
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isReady, togglePlay, seek, toggleMute, toggleFullscreen]);
 
   // unused — kept for future buffered progress overlay
   // const _playedFraction = duration > 0 ? (currentTime / duration) * 100 : 0;
@@ -633,6 +677,7 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
               <video
                 ref={videoRef}
                 className="h-full w-full object-contain"
+                poster={video.thumbnailUrl || undefined}
                 onTimeUpdate={() =>
                   setCurrentTime(videoRef.current?.currentTime ?? 0)
                 }
@@ -746,6 +791,11 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
                     {/* Time */}
                     <span className="text-xs text-white/70 font-mono tabular-nums">
                       {formatTime(currentTime)} / {formatTime(duration)}
+                    </span>
+
+                    {/* Keyboard hint */}
+                    <span className="hidden lg:block text-[10px] text-white/25 select-none ml-1">
+                      Space · ←→ ±5s · M · F
                     </span>
 
                     <div className="ml-auto flex items-center gap-1">
@@ -867,8 +917,17 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
             </div>
           ) : (
             /* Non-ready state — show status placeholder */
-            <div className="flex h-full items-center justify-center px-6">
-              <div className="max-w-sm text-center">
+            <div className="relative flex h-full items-center justify-center px-6">
+              {video.thumbnailUrl && (
+                <>
+                  <div
+                    className="absolute inset-0 bg-cover bg-center"
+                    style={{ backgroundImage: `url(${video.thumbnailUrl})` }}
+                  />
+                  <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
+                </>
+              )}
+              <div className="relative z-10 max-w-sm text-center">
                 {video.status === VideoStatus.PROCESSING ? (
                   <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-amber-400" />
                 ) : video.status === VideoStatus.ERROR ? (
@@ -897,6 +956,23 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
 
         {/* right: info + timeline sidebar */}
         <div className="lg:w-[360px] xl:w-[400px] shrink-0 flex flex-col border-l border-white/10 bg-[#121212] overflow-y-auto">
+          {/* Thumbnail strip */}
+          {video.thumbnailUrl && (
+            <div className="relative aspect-video w-full shrink-0 overflow-hidden border-b border-white/10 bg-black">
+              <img
+                src={video.thumbnailUrl}
+                alt={video.title}
+                className="h-full w-full object-cover"
+              />
+              {!isReady && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                  {video.status === VideoStatus.PROCESSING && (
+                    <Loader2 className="h-8 w-8 animate-spin text-amber-400 drop-shadow-lg" />
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           {/* Video meta */}
           <div className="p-5 border-b border-white/10 space-y-3">
             <h2 className="text-base font-semibold leading-snug text-white">

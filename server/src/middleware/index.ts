@@ -3,16 +3,24 @@ import cors from "cors";
 import helmet from "helmet";
 import { RateLimiters } from "./rateLimiting.js";
 import { config } from "../config/env.js";
+import { logger } from "../config/logger.js";
+import { ApiError } from "../types/index.js";
 
 // Custom Redis store for rate limiting
 export function setupMiddleware(app: express.Application): void {
   // Security headers
   app.use(helmet());
 
-  // CORS
+  // CORS — FRONTEND_URL may be comma-separated list of allowed origins
+  const allowedOrigins = config.FRONTEND_URL.split(",").map((o) => o.trim()).filter(Boolean);
   app.use(
     cors({
-      origin: config.FRONTEND_URL,
+      origin: (origin, callback) => {
+        // Allow requests with no origin (server-to-server, curl, etc.)
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        callback(new Error(`CORS: origin '${origin}' not allowed`));
+      },
       credentials: true,
     })
   );
@@ -21,10 +29,7 @@ export function setupMiddleware(app: express.Application): void {
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-  // 🚀 CUSTOM RATE LIMITING SYSTEM - Optimized for Video Streaming
-  console.log(
-    "� Applying custom rate limiting for video streaming application"
-  );
+  logger.info("Applying rate limiting for video streaming application");
 
   // General API rate limiter
   app.use("/api/", RateLimiters.general);
@@ -42,9 +47,8 @@ export function setupMiddleware(app: express.Application): void {
   app.use("/api/videos/:id/status", RateLimiters.status);
   app.use("/api/processing/status", RateLimiters.status);
 
-  // Video search and listing
+  // Video search — only the search endpoint, NOT the general listing
   app.use("/api/videos/search", RateLimiters.search);
-  app.use("/api/videos", RateLimiters.search);
 
   // Authentication endpoints
   app.use("/api/auth/", RateLimiters.auth);
@@ -57,18 +61,11 @@ export function setupMiddleware(app: express.Application): void {
   // Admin endpoints
   app.use("/api/admin/", RateLimiters.admin);
 
-  // Request logging in development
   if (config.NODE_ENV === "development") {
-    app.use(
-      (
-        req: express.Request,
-        res: express.Response,
-        next: express.NextFunction
-      ) => {
-        console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-        next();
-      }
-    );
+    app.use((req: express.Request, _res: express.Response, next: express.NextFunction) => {
+      logger.debug("Incoming request", { method: req.method, path: req.path });
+      next();
+    });
   }
 }
 
@@ -116,26 +113,36 @@ export function setupErrorHandling(app: express.Application): void {
   // Global error handler
   app.use(
     (
-      err: any,
+      err: Error | ApiError,
       req: express.Request,
       res: express.Response,
       next: express.NextFunction
     ) => {
-      console.error("Error:", err);
-
       if (res.headersSent) {
         return next(err);
       }
 
-      const statusCode = err.statusCode || 500;
-      const message =
-        config.NODE_ENV === "production"
+      const isApiError = err instanceof ApiError;
+      const statusCode = isApiError ? err.statusCode : 500;
+      const isOperational = isApiError ? err.isOperational : false;
+
+      logger.error("Request error", {
+        method: req.method,
+        path: req.path,
+        statusCode,
+        message: err.message,
+        ...(config.NODE_ENV !== "production" && { stack: err.stack }),
+      });
+
+      const message = isOperational
+        ? err.message
+        : config.NODE_ENV === "production"
           ? "Internal server error"
-          : err.message || "Something went wrong";
+          : err.message;
 
       res.status(statusCode).json({
         error: message,
-        ...(config.NODE_ENV === "development" && { stack: err.stack }),
+        ...(config.NODE_ENV === "development" && !isOperational && { stack: err.stack }),
       });
     }
   );

@@ -1,26 +1,38 @@
 import { createClient } from "redis";
 import { config } from "./env.js";
+import { logger } from "./logger.js";
 
-// Create Redis client
 export const redisClient = createClient({
   url: config.REDIS_URL || "redis://localhost:6379",
+  socket: {
+    connectTimeout: 5000,
+    reconnectStrategy: (retries) => {
+      if (retries > 10) {
+        logger.error("Redis reconnect limit reached — giving up");
+        return false;
+      }
+      const delay = Math.min(retries * 100, 3000);
+      logger.warn("Redis reconnecting", { retries, delayMs: delay });
+      return delay;
+    },
+  },
+  commandsQueueMaxLength: 500,
 });
 
-// Redis connection handlers
 redisClient.on("error", (err: Error) => {
-  console.error("Redis Client Error:", err);
+  logger.error("Redis client error", { message: err.message });
 });
 
 redisClient.on("connect", () => {
-  console.log("✅ Connected to Redis");
+  logger.info("Redis connected");
 });
 
 redisClient.on("ready", () => {
-  console.log("🚀 Redis client ready");
+  logger.info("Redis client ready");
 });
 
 redisClient.on("end", () => {
-  console.log("❌ Redis connection ended");
+  logger.warn("Redis connection ended");
 });
 
 // Connect to Redis
@@ -30,8 +42,7 @@ export const connectRedis = async () => {
       await redisClient.connect();
     }
   } catch (error) {
-    console.error("Failed to connect to Redis:", error);
-    // Don't throw error - app should work without Redis
+    logger.warn("Redis unavailable — running without cache", { error: (error as Error).message });
   }
 };
 
@@ -44,7 +55,7 @@ export const cache = {
       const value = await redisClient.get(key);
       return value ? JSON.parse(value) : null;
     } catch (error) {
-      console.error("Redis get error:", error);
+      logger.error("Redis get error", { error: (error as Error).message });
       return null;
     }
   },
@@ -56,7 +67,7 @@ export const cache = {
       await redisClient.setEx(key, ttl, JSON.stringify(value));
       return true;
     } catch (error) {
-      console.error("Redis set error:", error);
+      logger.error("Redis set error", { error: (error as Error).message });
       return false;
     }
   },
@@ -68,7 +79,7 @@ export const cache = {
       await redisClient.del(key);
       return true;
     } catch (error) {
-      console.error("Redis del error:", error);
+      logger.error("Redis del error", { error: (error as Error).message });
       return false;
     }
   },
@@ -80,7 +91,7 @@ export const cache = {
       const exists = await redisClient.exists(key);
       return exists === 1;
     } catch (error) {
-      console.error("Redis exists error:", error);
+      logger.error("Redis exists error", { error: (error as Error).message });
       return false;
     }
   },
@@ -93,6 +104,6 @@ export const disconnectRedis = async () => {
       await redisClient.quit();
     }
   } catch (error) {
-    console.error("Error disconnecting Redis:", error);
+    logger.error("Error disconnecting Redis", { error: (error as Error).message });
   }
 };

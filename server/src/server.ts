@@ -5,6 +5,7 @@ import { config } from "./config/env.js";
 import { connectDatabase, initializeDatabase } from "./config/database.js";
 import { connectRedis, disconnectRedis } from "./config/redis.js";
 import { socketService } from "./socket/socketService.js";
+import { rateLimiter } from "./middleware/rateLimiting.js";
 
 async function startServer() {
   try {
@@ -51,6 +52,9 @@ async function startServer() {
         try {
           // 2. Shutdown Socket.IO properly
           socketService.shutdown();
+
+          // 3a. Destroy rate limiter timer
+          rateLimiter.destroy();
           
           // 3. Close database connections
           const mongoose = await import('mongoose');

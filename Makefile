@@ -1,11 +1,15 @@
 # VisionSync deployment and operations
+# Secrets (REDIS_PASSWORD, etc.) must be set in environment or .env — never hardcode here
+-include .env
+export
+
 SHELL := /usr/bin/bash
 .RECIPEPREFIX := >
 
 .PHONY: help install build dev clean deploy destroy outputs update-env \
         preflight require-infra prepare-key create-inventory ansible-sync ansible-bootstrap \
         setup-mongodb setup-redis setup-all-db check-mongodb check-redis \
-        deploy-server deploy-client deploy-prod status-prod \
+        deploy-server deploy-client deploy-lambda deploy-processor deploy-prod status-prod \
         logs-server-prod logs-frontend ssh-frontend ssh-backend-prod
 
 YELLOW := \033[1;33m
@@ -40,7 +44,7 @@ RAW_BUCKET ?= $(shell cd IaC && pulumi stack output rawVideosBucketName 2>/dev/n
 PROCESSED_BUCKET ?= $(shell cd IaC && pulumi stack output processedVideosBucketName 2>/dev/null)
 SQS_QUEUE_URL ?= $(shell cd IaC && pulumi stack output videoProcessingQueueUrl 2>/dev/null)
 MONGODB_URI ?= $(shell cd IaC && pulumi stack output mongodbConnectionString 2>/dev/null)
-REDIS_PASSWORD ?= VisionSyncRedis2024!
+REDIS_PASSWORD ?=
 REDIS_URL ?= redis://:$(REDIS_PASSWORD)@$(REDIS_IP):6379
 
 LIVE_INVENTORY ?= ansible/live-inventory.ini
@@ -65,6 +69,7 @@ help:
 > @echo "Application deployment:"
 > @echo "  make deploy-server     - build server image, push ECR, restart backend"
 > @echo "  make deploy-client     - build client image on frontend host"
+> @echo "  make deploy-lambda     - build lambda and update function code directly (no pulumi)"
 > @echo "  make deploy-prod       - deploy server + client + status"
 > @echo ""
 > @echo "Operations:"
@@ -231,6 +236,44 @@ deploy-server: preflight require-infra prepare-key
 > @echo "$(YELLOW)Deploying backend through bastion...$(NC)"
 > @ssh -o StrictHostKeyChecking=no -i "$(SAFE_SSH_KEY)" ubuntu@$(BASTION_IP) "ssh -o StrictHostKeyChecking=no -i ~/.ssh/vision-sync-backend ubuntu@$(BACKEND_EC2_IP) 'aws ecr get-login-password --region $(AWS_REGION) | docker login --username AWS --password-stdin $(ECR_REGISTRY) && docker pull $(SERVER_ECR):latest && docker stop vision-sync-server 2>/dev/null || true && docker rm vision-sync-server 2>/dev/null || true && docker run -d --name vision-sync-server --restart unless-stopped -p 5000:5000 -e PORT=5000 -e NODE_ENV=production -e AWS_REGION=$(AWS_REGION) -e S3_BUCKET_RAW=$(RAW_BUCKET) -e S3_BUCKET_PROCESSED=$(PROCESSED_BUCKET) -e SQS_QUEUE_URL="$(SQS_QUEUE_URL)" -e MONGODB_URI="$(MONGODB_URI)" -e REDIS_URL="$(REDIS_URL)" -e CLOUDFRONT_DOMAIN=$(CLOUDFRONT_DOMAIN) -e FRONTEND_URL=$(ALB_URL) $(SERVER_ECR):latest && docker ps --format \"table {{.Names}}\\t{{.Status}}\\t{{.Ports}}\" | grep vision-sync-server'"
 > @echo "$(GREEN)Backend deployed$(NC)"
+
+deploy-lambda: preflight
+> @echo "$(YELLOW)Building Lambda and updating function code...$(NC)"
+> @cd lambda && npm run build
+> @rm -f /tmp/vision-sync-lambda.zip
+> @cd lambda/dist && zip -r /tmp/vision-sync-lambda.zip . > /dev/null
+> @cd lambda && zip -r /tmp/vision-sync-lambda.zip node_modules/ > /dev/null
+> @aws lambda update-function-code \
+>   --function-name vision-sync-ecs-trigger-dev \
+>   --zip-file fileb:///tmp/vision-sync-lambda.zip \
+>   --region $(AWS_REGION) \
+>   --output text --query 'FunctionArn'
+> @aws lambda wait function-updated \
+>   --function-name vision-sync-ecs-trigger-dev \
+>   --region $(AWS_REGION)
+> @echo "$(GREEN)Lambda deployed$(NC)"
+
+deploy-processor: preflight
+> @echo "$(YELLOW)Building and pushing processor image...$(NC)"
+> @cd container && docker build -t vision-sync-processor:latest .
+> @aws ecr get-login-password --region "$(AWS_REGION)" | docker login --username AWS --password-stdin "$(ECR_REGISTRY)"
+> @docker tag vision-sync-processor:latest "$(ECR_REGISTRY)/vision-sync-video-processor-dev:latest"
+> @docker push "$(ECR_REGISTRY)/vision-sync-video-processor-dev:latest"
+> @echo "$(GREEN)Processor image pushed$(NC)"
+
+push-containers: preflight
+> @echo "$(YELLOW)Building and pushing all containers...$(NC)"
+> @aws ecr get-login-password --region "$(AWS_REGION)" | docker login --username AWS --password-stdin "$(ECR_REGISTRY)"
+> @cd server && docker build -t vision-sync-server:latest .
+> @docker tag vision-sync-server:latest "$(SERVER_ECR):latest"
+> @docker push "$(SERVER_ECR):latest"
+> @cd client && docker build --build-arg VITE_API_URL=$(ALB_URL) -t vision-sync-client:latest .
+> @docker tag vision-sync-client:latest "$(CLIENT_ECR):latest"
+> @docker push "$(CLIENT_ECR):latest"
+> @cd container && docker build -t vision-sync-processor:latest .
+> @docker tag vision-sync-processor:latest "$(ECR_REGISTRY)/vision-sync-video-processor-dev:latest"
+> @docker push "$(ECR_REGISTRY)/vision-sync-video-processor-dev:latest"
+> @echo "$(GREEN)All containers built and pushed$(NC)"
 
 deploy-client: preflight require-infra prepare-key
 > @echo "$(YELLOW)Packaging and deploying frontend...$(NC)"

@@ -26,6 +26,7 @@ export type VideoStatus = (typeof VideoStatus)[keyof typeof VideoStatus];
 export interface UploadResponse {
   presignedUrl: string;
   videoId: string;
+  expiresAt: string; // ISO timestamp — URL invalid after this
 }
 
 export interface ApiResponse<T> {

@@ -1,51 +1,35 @@
-// server/src/routes/webhook.ts - Updated with Socket.IO
 import express from "express";
 import { videoService } from "../services/videoService.js";
 import { socketService } from "../socket/socketService.js";
 import { VideoStatus } from "../types/index.js";
 import { saveNotification } from "../services/notificationService.js";
+import { validateWebhookPayload } from "../middleware/validation.js";
+import { logger } from "../config/logger.js";
 
 const router = express.Router();
 
-// Webhook for video processing completion
-router.post("/processing-complete", async (req, res) => {
+router.post("/processing-complete", validateWebhookPayload, async (req: express.Request, res: express.Response) => {
   try {
     const { videoId, status, manifestUrl, error } = req.body;
 
-    if (!videoId || !status) {
-      res.status(400).json({
-        error: "Missing required fields: videoId, status",
-      });
-      return;
-    }
+    logger.info("Webhook received", { videoId, status });
 
-    console.log(`📥 Webhook received: Video ${videoId} status: ${status}`);
-
-    // Guard: never downgrade a video that is already 'ready' to 'error'.
-    // This prevents a duplicate or stale ECS task from clobbering a successful result.
-    if (status === "error" || error) {
-      const existing = await videoService.getVideoById(videoId);
-      if (existing && existing.status === VideoStatus.READY) {
-        console.log(
-          `⚠️  Ignoring error webhook for ${videoId} — video is already READY`,
-        );
-        res.json({ message: "Ignored: video already ready" });
-        return;
-      }
-    }
-
-    // Update database
     let updatedVideo;
+
     if (status === "ready" && manifestUrl) {
       updatedVideo = await videoService.markVideoAsReady(videoId, manifestUrl);
 
-      // ✅ EMIT REAL-TIME UPDATE
+      if (!updatedVideo) {
+        logger.warn("Ready webhook ignored — video already READY or not found", { videoId });
+        res.json({ message: "Ignored: video already ready or not found" });
+        return;
+      }
+
       socketService.emitVideoStatus(videoId, "READY", {
         manifestUrl,
         message: "Video processing complete! Ready for streaming.",
       });
 
-      // Persist notification
       await saveNotification(
         videoId,
         "ready",
@@ -54,18 +38,21 @@ router.post("/processing-complete", async (req, res) => {
         "ready",
       );
     } else if (status === "error" || error) {
-      updatedVideo = await videoService.updateVideoStatus(
-        videoId,
-        VideoStatus.ERROR,
-      );
+      // Atomic update: only sets ERROR if video is NOT already READY.
+      // Prevents a duplicate or stale ECS task from clobbering a successful result.
+      updatedVideo = await videoService.setVideoError(videoId);
 
-      // ❌ EMIT ERROR UPDATE
+      if (!updatedVideo) {
+        logger.warn("Error webhook ignored — video already READY or not found", { videoId });
+        res.json({ message: "Ignored: video already ready or not found" });
+        return;
+      }
+
       socketService.emitVideoStatus(videoId, "ERROR", {
         error: error || "Processing failed",
         message: "Video processing failed. Please try uploading again.",
       });
 
-      // Persist notification
       await saveNotification(
         videoId,
         "error",
@@ -79,14 +66,11 @@ router.post("/processing-complete", async (req, res) => {
         status.toUpperCase() as VideoStatus,
       );
 
-      const isProcessing = status.toLowerCase() === "processing";
-      // 🔄 EMIT PROCESSING UPDATE
       socketService.emitVideoStatus(videoId, status.toUpperCase(), {
         message: `Video is ${status}`,
       });
 
-      // Persist processing start notification
-      if (isProcessing) {
+      if (status.toLowerCase() === "processing") {
         await saveNotification(
           videoId,
           "processing",
@@ -102,14 +86,14 @@ router.post("/processing-complete", async (req, res) => {
       return;
     }
 
-    console.log(`✅ Video ${videoId} updated and broadcasted`);
+    logger.info("Video status updated and broadcasted", { videoId, status });
 
     res.json({
       data: updatedVideo,
       message: "Video status updated and broadcasted",
     });
-  } catch (error) {
-    console.error("Processing webhook error:", error);
+  } catch (err) {
+    logger.error("Processing webhook error", { error: (err as Error).message });
     res.status(500).json({ error: "Failed to update video status" });
   }
 });

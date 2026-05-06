@@ -60,6 +60,31 @@ export const validateVideoId = [
   handleValidationErrors,
 ]
 
+export const validateWebhookPayload = [
+  body('videoId')
+    .isUUID()
+    .withMessage('videoId must be a valid UUID'),
+
+  body('status')
+    .isString()
+    .isIn(['processing', 'ready', 'error'])
+    .withMessage('status must be one of: processing, ready, error'),
+
+  body('manifestUrl')
+    .optional()
+    .isString()
+    .isLength({ min: 1, max: 1000 })
+    .withMessage('manifestUrl must be a non-empty string'),
+
+  body('error')
+    .optional()
+    .isString()
+    .isLength({ max: 2000 })
+    .withMessage('error message must be under 2000 characters'),
+
+  handleValidationErrors,
+]
+
 export const validateSegmentRequest = [
   param('id')
     .isUUID()

@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Video, VideoStatus } from "../types";
+import { apiService } from "@/service/api";
 // dashjs is loaded as a UMD global via <script src="/dashjs.min.js"> in index.html.
 // Do NOT import it through the bundler — both Rollup and esbuild mis-initialize
 // dashjs’s embedded webpack module system, leaving window.dashjs.MediaPlayer undefined.
@@ -44,9 +45,11 @@ export function VideoPlayer({ video, onClose }: VideoPlayerProps) {
           dashPlayerRef.current.destroy();
         }
 
-        if (video.manifestUrl) {
-          // Initialize DASH player using the stored CloudFront manifest URL
-          const manifestUrl = video.manifestUrl;
+        const manifestUrl = apiService.getCloudfrontUrl()
+          ? apiService.getManifestUrl(video.id)
+          : video.manifestUrl;
+
+        if (manifestUrl) {
           const player = _dashjs().MediaPlayer().create();
 
           // Configure player
@@ -121,29 +124,23 @@ export function VideoPlayer({ video, onClose }: VideoPlayerProps) {
   };
 
   const changeQuality = (qualityIndex: number) => {
-    if (dashPlayerRef.current) {
-      if (qualityIndex === -1) {
-        // Auto quality
-        dashPlayerRef.current.updateSettings({
-          streaming: {
-            abr: {
-              autoSwitchBitrate: { video: true },
-            },
-          },
-        });
-      } else {
-        // Manual quality
-        dashPlayerRef.current.updateSettings({
-          streaming: {
-            abr: {
-              autoSwitchBitrate: { video: false },
-            },
-          },
-        });
-        dashPlayerRef.current.setQualityFor("video", qualityIndex);
-      }
-      setCurrentQuality(qualityIndex);
+    if (!dashPlayerRef.current) return;
+    if (qualityIndex === -1) {
+      dashPlayerRef.current.updateSettings({
+        streaming: {
+          abr: { autoSwitchBitrate: { video: true, audio: true } },
+        },
+      });
+    } else {
+      dashPlayerRef.current.updateSettings({
+        streaming: {
+          abr: { autoSwitchBitrate: { video: false, audio: false } },
+        },
+      });
+      // replace=true flushes buffer so ALL subsequent chunks load at the chosen quality
+      dashPlayerRef.current.setQualityFor("video", qualityIndex, true);
     }
+    setCurrentQuality(qualityIndex);
   };
 
   const handleTimeUpdate = () => {

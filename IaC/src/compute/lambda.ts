@@ -77,7 +77,7 @@ export const lambdaWithDependency = new aws.lambda.Function(
           SUBNET_IDS: subnetIds.join(","),
           SECURITY_GROUP_ID: sgId,
           PROCESSED_BUCKET: bucket,
-          REGION: reg.name,
+          AWS_REGION: reg.name, // FIX: Changed from REGION to AWS_REGION to match Lambda code
         })),
     },
 

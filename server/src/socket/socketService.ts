@@ -1,7 +1,12 @@
-// server/src/socket/socketService.ts - FIXED with memory management
 import { Server, Socket } from 'socket.io';
 import { Server as HttpServer } from 'http';
 import { config } from '../config/env.js';
+import { logger } from '../config/logger.js';
+import { redisClient } from '../config/redis.js';
+
+const BUFFER_KEY_PREFIX = 'video:msgbuf:';
+const BUFFER_TTL_SECONDS = 1800; // 30 minutes
+const MAX_BUFFERED_MESSAGES = 20;
 
 interface RoomStats {
   lastActivity: Date;
@@ -10,6 +15,7 @@ interface RoomStats {
 
 interface ConnectionLimits {
   maxConnections: number;
+  maxConnectionsPerIp: number;
   maxRoomsPerConnection: number;
   roomCleanupInterval: number;
   roomInactivityTimeout: number;
@@ -18,270 +24,262 @@ interface ConnectionLimits {
 class SocketService {
   private io: Server | null = null;
   private roomStats = new Map<string, RoomStats>();
-  private connectionRooms = new Map<string, Set<string>>(); // Track rooms per connection
+  private connectionRooms = new Map<string, Set<string>>();
+  private ipConnections = new Map<string, number>();
   private cleanupInterval: NodeJS.Timeout | null = null;
-  
+
   private readonly limits: ConnectionLimits = {
-    maxConnections: 100, // Budget-friendly connection limit
-    maxRoomsPerConnection: 10, // Prevent room spam per user
-    roomCleanupInterval: 5 * 60 * 1000, // 5 minutes
-    roomInactivityTimeout: 30 * 60 * 1000, // 30 minutes
+    maxConnections: 100,
+    maxConnectionsPerIp: 5,
+    maxRoomsPerConnection: 10,
+    roomCleanupInterval: 5 * 60 * 1000,
+    roomInactivityTimeout: 30 * 60 * 1000,
   };
 
   initialize(server: HttpServer): void {
     this.io = new Server(server, {
       cors: {
         origin: config.FRONTEND_URL,
-        methods: ['GET', 'POST']
+        methods: ['GET', 'POST'],
       },
-      // MEMORY OPTIMIZATION: Enhanced limits
       transports: ['websocket', 'polling'],
       pingTimeout: 60000,
       pingInterval: 25000,
-      maxHttpBufferSize: 1e6, // 1MB
+      maxHttpBufferSize: 1e6,
       connectionStateRecovery: {
-        maxDisconnectionDuration: 2 * 60 * 1000, // 2 minutes
+        maxDisconnectionDuration: 2 * 60 * 1000,
         skipMiddlewares: true,
       },
     });
 
     this.setupEventHandlers();
     this.startRoomCleanup();
-    console.log('📡 Socket.IO initialized with memory management');
+    logger.info('Socket.IO initialized');
+  }
+
+  private getClientIp(socket: Socket): string {
+    const forwarded = socket.handshake.headers['x-forwarded-for'];
+    if (typeof forwarded === 'string') return forwarded.split(',')[0].trim();
+    return socket.handshake.address;
+  }
+
+  private async bufferMessage(videoId: string, payload: object): Promise<void> {
+    if (!redisClient.isOpen) return;
+    try {
+      const key = `${BUFFER_KEY_PREFIX}${videoId}`;
+      await redisClient.rPush(key, JSON.stringify(payload));
+      await redisClient.lTrim(key, -MAX_BUFFERED_MESSAGES, -1);
+      await redisClient.expire(key, BUFFER_TTL_SECONDS);
+    } catch {
+      // Non-fatal — buffer best-effort
+    }
+  }
+
+  private async replayBufferedMessages(socket: Socket, videoId: string): Promise<void> {
+    if (!redisClient.isOpen) return;
+    try {
+      const key = `${BUFFER_KEY_PREFIX}${videoId}`;
+      const messages = await redisClient.lRange(key, 0, -1);
+      if (messages.length === 0) return;
+      messages.forEach((raw) => {
+        try { socket.emit('video-status', JSON.parse(raw)); } catch { /* skip malformed */ }
+      });
+      logger.info('Replayed buffered messages', { videoId, count: messages.length });
+    } catch {
+      // Non-fatal
+    }
   }
 
   private setupEventHandlers(): void {
     if (!this.io) return;
 
-    // CONNECTION LIMITING
     this.io.engine.on('connection_error', (err) => {
-      console.log('Connection error:', err.req?.url, err.code, err.message);
+      logger.warn('Socket connection error', { url: err.req?.url, code: err.code, message: err.message });
     });
 
     this.io.on('connection', (socket) => {
-      // Check connection limit
+      const ip = this.getClientIp(socket);
+
+      // Global connection limit
       if (this.getConnectionCount() > this.limits.maxConnections) {
-        console.warn(`⚠️ Connection limit exceeded. Rejecting ${socket.id}`);
+        logger.warn('Global connection limit exceeded', { socketId: socket.id });
         socket.emit('error', 'Server capacity reached. Try again later.');
         socket.disconnect(true);
         return;
       }
 
-      console.log(`🔌 Client connected: ${socket.id} (${this.getConnectionCount()}/${this.limits.maxConnections})`);
-      
-      // Initialize connection room tracking
-      this.connectionRooms.set(socket.id, new Set());
+      // Per-IP connection limit
+      const ipCount = this.ipConnections.get(ip) ?? 0;
+      if (ipCount >= this.limits.maxConnectionsPerIp) {
+        logger.warn('Per-IP connection limit exceeded', { ip, count: ipCount });
+        socket.emit('error', 'Too many connections from your network.');
+        socket.disconnect(true);
+        return;
+      }
+      this.ipConnections.set(ip, ipCount + 1);
 
-      // Enhanced room management
+      this.connectionRooms.set(socket.id, new Set());
+      logger.info('Client connected', { socketId: socket.id, ip, total: this.getConnectionCount() });
+
       socket.on('join-user', (userId: string) => {
         this.joinRoom(socket, `user-${userId}`, 'user');
       });
 
-      socket.on('join-video', (videoId: string) => {
+      socket.on('join-video', async (videoId: string) => {
         this.joinRoom(socket, `video-${videoId}`, 'video');
+        await this.replayBufferedMessages(socket, videoId);
       });
 
       socket.on('leave-video', (videoId: string) => {
         this.leaveRoom(socket, `video-${videoId}`);
       });
 
-      // MEMORY FIX: Cleanup on disconnect
       socket.on('disconnect', (reason) => {
-        console.log(`🔌 Client disconnected: ${socket.id} (reason: ${reason})`);
-        this.handleDisconnection(socket);
+        logger.info('Client disconnected', { socketId: socket.id, reason });
+        this.handleDisconnection(socket, ip);
       });
 
-      // Add connection timeout for inactive clients
       const inactivityTimeout = setTimeout(() => {
         if (socket.connected) {
-          console.log(`⏰ Disconnecting inactive client: ${socket.id}`);
           socket.emit('error', 'Connection timeout due to inactivity');
           socket.disconnect(true);
         }
-      }, 10 * 60 * 1000); // 10 minutes
+      }, 10 * 60 * 1000);
 
-      socket.on('disconnect', () => {
-        clearTimeout(inactivityTimeout);
-      });
-
-      // Reset inactivity timer on any message
-      socket.onAny(() => {
-        clearTimeout(inactivityTimeout);
-      });
+      socket.on('disconnect', () => clearTimeout(inactivityTimeout));
+      socket.onAny(() => clearTimeout(inactivityTimeout));
     });
   }
 
-  // Smart room joining with limits
   private joinRoom(socket: Socket, roomName: string, roomType: 'user' | 'video'): void {
     const socketRooms = this.connectionRooms.get(socket.id);
     if (!socketRooms) return;
 
-    // Check room limit per connection
     if (socketRooms.size >= this.limits.maxRoomsPerConnection) {
-      console.warn(`⚠️ Room limit exceeded for ${socket.id}. Cannot join ${roomName}`);
-      socket.emit('error', `Too many rooms joined. Leave some rooms first.`);
+      socket.emit('error', 'Too many rooms joined. Leave some rooms first.');
       return;
     }
 
-    // Join the room
     socket.join(roomName);
     socketRooms.add(roomName);
-
-    // Update room stats
     this.updateRoomStats(roomName);
-    
-    console.log(`${roomType === 'video' ? '🎬' : '👤'} ${socket.id} joined ${roomName} (${socketRooms.size}/${this.limits.maxRoomsPerConnection} rooms)`);
+    logger.info('Client joined room', { socketId: socket.id, room: roomName, type: roomType });
   }
 
-  // Leave room and cleanup
   private leaveRoom(socket: Socket, roomName: string): void {
     const socketRooms = this.connectionRooms.get(socket.id);
     if (!socketRooms) return;
 
     socket.leave(roomName);
     socketRooms.delete(roomName);
-    
-    // Check if room is now empty
+
     const room = this.io?.sockets.adapter.rooms.get(roomName);
     if (!room || room.size === 0) {
       this.roomStats.delete(roomName);
-      console.log(`🧹 Cleaned up empty room: ${roomName}`);
     }
-    
-    console.log(`👋 ${socket.id} left ${roomName}`);
   }
 
-  // Handle client disconnection cleanup
-  private handleDisconnection(socket: Socket): void {
+  private handleDisconnection(socket: Socket, ip: string): void {
     const socketRooms = this.connectionRooms.get(socket.id);
-    
     if (socketRooms) {
-      // Leave all rooms and check for cleanup
       for (const roomName of socketRooms) {
         socket.leave(roomName);
-        
-        // Check if room is empty after this client leaves
         const room = this.io?.sockets.adapter.rooms.get(roomName);
         if (!room || room.size === 0) {
           this.roomStats.delete(roomName);
-          console.log(`🧹 Auto-cleaned empty room: ${roomName}`);
         }
       }
-      
-      // Remove connection tracking
       this.connectionRooms.delete(socket.id);
     }
+
+    const ipCount = this.ipConnections.get(ip) ?? 1;
+    if (ipCount <= 1) this.ipConnections.delete(ip);
+    else this.ipConnections.set(ip, ipCount - 1);
   }
 
-  // Update room activity stats
   private updateRoomStats(roomName: string): void {
     const existing = this.roomStats.get(roomName);
     this.roomStats.set(roomName, {
       lastActivity: new Date(),
-      connectionCount: (existing?.connectionCount || 0) + 1
+      connectionCount: (existing?.connectionCount ?? 0) + 1,
     });
   }
 
-  // Periodic cleanup of inactive rooms
   private startRoomCleanup(): void {
     this.cleanupInterval = setInterval(() => {
       this.cleanupInactiveRooms();
     }, this.limits.roomCleanupInterval);
-
-    console.log(`🧹 Room cleanup scheduled every ${this.limits.roomCleanupInterval / 1000}s`);
   }
 
   private cleanupInactiveRooms(): void {
     if (!this.io) return;
 
-    const now = new Date();
-    const roomsToClean: string[] = [];
+    const now = Date.now();
+    const toClean: string[] = [];
 
-    // Find inactive rooms
     for (const [roomName, stats] of this.roomStats.entries()) {
-      const inactiveTime = now.getTime() - stats.lastActivity.getTime();
-      
-      if (inactiveTime > this.limits.roomInactivityTimeout) {
-        // Check if room actually exists and is empty
-        const room = this.io.sockets.adapter.rooms.get(roomName);
-        if (!room || room.size === 0) {
-          roomsToClean.push(roomName);
-        }
+      const inactive = now - stats.lastActivity.getTime() > this.limits.roomInactivityTimeout;
+      const room = this.io.sockets.adapter.rooms.get(roomName);
+      if (inactive && (!room || room.size === 0)) {
+        toClean.push(roomName);
       }
     }
 
-    // Clean up inactive rooms
-    if (roomsToClean.length > 0) {
-      console.log(`🧹 Cleaning up ${roomsToClean.length} inactive rooms`);
-      roomsToClean.forEach(roomName => {
-        this.roomStats.delete(roomName);
-        // Force cleanup any remaining sockets
-        this.io?.in(roomName).disconnectSockets(true);
+    if (toClean.length > 0) {
+      toClean.forEach((r) => {
+        this.roomStats.delete(r);
+        this.io?.in(r).disconnectSockets(true);
       });
-    }
-
-    // Log stats periodically
-    if (roomsToClean.length > 0) {
-      console.log(`📊 Room stats: ${this.roomStats.size} active rooms, ${this.getConnectionCount()} connections`);
+      logger.info('Cleaned inactive rooms', { count: toClean.length });
     }
   }
 
-  // Enhanced emit with room validation
-  emitVideoStatus(videoId: string, status: string, data?: any): void {
+  emitVideoStatus(videoId: string, status: string, data?: Record<string, unknown>): void {
     if (!this.io) return;
 
     const roomName = `video-${videoId}`;
     const room = this.io.sockets.adapter.rooms.get(roomName);
-
-    // Only emit if room exists and has listeners
-    if (!room || room.size === 0) {
-      console.log(`📡 No listeners for ${roomName}, skipping emission`);
-      return;
-    }
 
     const payload = {
       videoId,
       status,
       timestamp: new Date().toISOString(),
-      ...data
+      ...data,
     };
+
+    if (!room || room.size === 0) {
+      // No active listeners — buffer for replay on reconnect
+      this.bufferMessage(videoId, payload).catch(() => { /* swallow */ });
+      return;
+    }
 
     this.io.to(roomName).emit('video-status', payload);
     this.updateRoomStats(roomName);
-    
-    console.log(`📡 Emitted video-status for ${videoId}: ${status} (${room.size} listeners)`);
+    logger.info('Emitted video status', { videoId, status, listeners: room.size });
   }
 
-  // Enhanced progress emission with throttling
   emitProgress(videoId: string, progress: number): void {
     if (!this.io) return;
-
     const roomName = `video-${videoId}`;
     const room = this.io.sockets.adapter.rooms.get(roomName);
-
-    // Only emit if room exists and at 10% intervals
-    if ((!room || room.size === 0) || progress % 10 !== 0) {
-      return;
-    }
+    if (!room || room.size === 0 || progress % 10 !== 0) return;
 
     this.io.to(roomName).emit('processing-progress', {
       videoId,
       progress,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
-
     this.updateRoomStats(roomName);
   }
 
-  // Memory and performance monitoring
   getStats() {
-    const rooms = this.io?.sockets.adapter.rooms || new Map();
+    const rooms = this.io?.sockets.adapter.rooms ?? new Map();
     const activeRooms = Array.from(rooms.entries())
-      .filter(([name, room]) => !this.io?.sockets.sockets.has(name)) // Filter out socket IDs
+      .filter(([name]) => !this.io?.sockets.sockets.has(name))
       .map(([name, room]) => ({
         name,
         size: room.size,
-        lastActivity: this.roomStats.get(name)?.lastActivity || new Date()
+        lastActivity: this.roomStats.get(name)?.lastActivity ?? new Date(),
       }));
 
     return {
@@ -290,56 +288,40 @@ class SocketService {
       roomDetails: activeRooms,
       memoryUsage: {
         roomStats: this.roomStats.size,
-        connectionTracking: this.connectionRooms.size
-      }
+        connectionTracking: this.connectionRooms.size,
+        ipTracking: this.ipConnections.size,
+      },
     };
   }
 
-  // Connection count (existing)
   getConnectionCount(): number {
-    return this.io?.engine.clientsCount || 0;
+    return this.io?.engine.clientsCount ?? 0;
   }
 
-  // Graceful shutdown
   shutdown(): void {
-    console.log('📴 Shutting down Socket service...');
-    
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
     }
 
     if (this.io) {
-      // Notify all clients
-      this.io.emit('server-shutdown', { 
-        message: 'Server is shutting down. Please refresh to reconnect.' 
-      });
-      
-      // Close all connections
+      this.io.emit('server-shutdown', { message: 'Server is shutting down. Please refresh to reconnect.' });
       this.io.close((err) => {
-        if (err) {
-          console.error('Error closing Socket.IO:', err);
-        } else {
-          console.log('✅ Socket.IO server closed');
-        }
+        if (err) logger.error('Error closing Socket.IO', { error: err.message });
+        else logger.info('Socket.IO server closed');
       });
     }
 
-    // Clear memory
     this.roomStats.clear();
     this.connectionRooms.clear();
+    this.ipConnections.clear();
   }
 
-  // Force cleanup command (for admin/debugging)
   forceCleanup(): void {
-    console.log('🔧 Force cleanup requested');
     this.cleanupInactiveRooms();
-    
-    // Remove orphaned rooms (rooms with no actual connections)
     if (this.io) {
       const allRooms = this.io.sockets.adapter.rooms;
       for (const [roomName, room] of allRooms.entries()) {
-        // Skip socket ID rooms
         if (!this.io.sockets.sockets.has(roomName) && room.size === 0) {
           this.roomStats.delete(roomName);
         }

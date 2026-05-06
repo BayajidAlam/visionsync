@@ -120,23 +120,19 @@ const lambdaPolicy = new aws.iam.Policy("lambda-policy", {
     Statement: [
       {
         // FIX: Scoped ECS permissions — RunTask scoped to vision-sync task definitions
-        // DescribeTasks/DescribeTaskDefinition still need * (they don't support resource-level)
         Effect: "Allow",
         Action: ["ecs:RunTask"],
         Resource: "arn:aws:ecs:*:*:task-definition/vision-sync-*",
       },
       {
-        // ecs:TagResource required when RunTask includes tags or propagateTags
-        Effect: "Allow",
-        Action: ["ecs:TagResource"],
-        Resource: "arn:aws:ecs:*:*:task/vision-sync-*/*",
-      },
-      {
         Effect: "Allow",
         Action: [
+          "ecs:RunTask",
           "ecs:StopTask",
           "ecs:DescribeTasks",
-          "ecs:DescribeTaskDefinition",
+          "ecs:ListTasks",
+          "ecs:TagResource", // FIX: Added for propagateTags support in ECS RunTask
+          "ec2:DescribeNetworkInterfaces",
         ],
         Resource: "*",
       },

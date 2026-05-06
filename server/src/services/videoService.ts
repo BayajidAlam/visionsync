@@ -11,6 +11,7 @@ import { IVideo, VideoModel } from "../model/video.js";
 import { socketService } from "../socket/socketService.js";
 import { cacheService } from "./cacheService.js";
 import { saveNotification } from "./notificationService.js";
+import { logger } from "../config/logger.js";
 export class VideoService {
   // Convert MongoDB document to API response format
   private mapDocumentToVideo(doc: IVideo): Video {
@@ -64,7 +65,7 @@ export class VideoService {
 
       return result;
     } catch (error) {
-      console.error("Error creating video:", error);
+      logger.error("Error creating video", { error: (error as Error).message });
       throw new Error("Failed to create video record");
     }
   }
@@ -89,8 +90,13 @@ export class VideoService {
       await cacheService.cacheVideoStatus(id, status);
       await cacheService.invalidateListCaches(); // Status change affects lists
 
-      // 🔄 EMIT STATUS CHANGE (except for webhook-triggered updates to avoid duplication)
-      if (status !== VideoStatus.READY && status !== VideoStatus.ERROR) {
+      // 🔄 EMIT STATUS CHANGE — skip READY/ERROR (webhook.ts handles those with richer data)
+      // skip UPLOADED (markVideoAsUploaded emits with better message)
+      if (
+        status !== VideoStatus.READY &&
+        status !== VideoStatus.ERROR &&
+        status !== VideoStatus.UPLOADED
+      ) {
         socketService.emitVideoStatus(id, status, {
           message: `Video status changed to ${status}`,
         });
@@ -98,7 +104,7 @@ export class VideoService {
 
       return result;
     } catch (error) {
-      console.error("Error updating video status:", error);
+      logger.error("Error updating video status", { error: (error as Error).message });
       throw new Error("Failed to update video status");
     }
   }
@@ -134,7 +140,7 @@ export class VideoService {
 
       return uploadedVideo;
     } catch (error) {
-      console.error("Error marking video as uploaded:", error);
+      logger.error("Error marking video as uploaded", { error: (error as Error).message });
       throw new Error("Failed to update upload status");
     }
   }
@@ -158,7 +164,7 @@ export class VideoService {
 
       return mappedVideos;
     } catch (error) {
-      console.error("Error fetching videos:", error);
+      logger.error("Error fetching videos", { error: (error as Error).message });
       throw new Error("Failed to fetch videos");
     }
   }
@@ -184,7 +190,7 @@ export class VideoService {
 
       return mappedVideo;
     } catch (error) {
-      console.error("Error fetching video:", error);
+      logger.error("Error fetching video", { error: (error as Error).message });
       throw new Error("Failed to fetch video");
     }
   }
@@ -212,7 +218,7 @@ export class VideoService {
 
       return mappedVideo;
     } catch (error) {
-      console.error("Error updating video:", error);
+      logger.error("Error updating video", { error: (error as Error).message });
       throw new Error("Failed to update video");
     }
   }
@@ -232,14 +238,14 @@ export class VideoService {
 
         // Delete from S3 (async, don't wait)
         s3Service.deleteVideo(id, video.filename).catch((error) => {
-          console.error("Error deleting video from S3:", error);
+          logger.error("Error deleting video from S3", { error: (error as Error).message });
         });
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error("Error deleting video:", error);
+      logger.error("Error deleting video", { error: (error as Error).message });
       throw new Error("Failed to delete video");
     }
   }
@@ -259,8 +265,8 @@ export class VideoService {
       const thumbnailUrl = `${cloudfrontBaseUrl}/${videoId}/thumbnail.jpg`;
 
       // Update video with CloudFront URLs
-      const video = await VideoModel.findByIdAndUpdate(
-        videoId,
+      const video = await VideoModel.findOneAndUpdate(
+        { _id: videoId, status: { $ne: VideoStatus.READY } },
         {
           status: VideoStatus.READY,
           manifestUrl,
@@ -284,14 +290,39 @@ export class VideoService {
         streamingUrl: manifestUrl, // Direct link for the player
       });
 
-      console.log(`✅ Video ${videoId} marked as ready with CloudFront URLs`);
-      console.log(`   Manifest: ${manifestUrl}`);
-      console.log(`   Video: ${videoUrl}`);
+      logger.info("Video marked as ready", { videoId, manifestUrl, videoUrl });
 
       return result;
     } catch (error) {
-      console.error("Error marking video as ready:", error);
+      logger.error("Error marking video as ready", { error: (error as Error).message });
       throw new Error("Failed to mark video as ready");
+    }
+  }
+
+  /**
+   * Atomically sets status to ERROR only if current status is NOT READY.
+   * Prevents a duplicate/stale ECS task from overwriting a successful result.
+   * Returns null both when video doesn't exist AND when update was skipped (already READY).
+   */
+  async setVideoError(videoId: string): Promise<Video | null> {
+    try {
+      const video = await VideoModel.findOneAndUpdate(
+        { _id: videoId, status: { $ne: VideoStatus.READY } },
+        { status: VideoStatus.ERROR },
+        { new: true },
+      );
+
+      if (!video) return null;
+
+      const result = this.mapDocumentToVideo(video);
+      await cacheService.cacheVideo(result);
+      await cacheService.cacheVideoStatus(videoId, VideoStatus.ERROR);
+      await cacheService.invalidateListCaches();
+
+      return result;
+    } catch (error) {
+      logger.error("Error setting video to error state", { videoId, error: (error as Error).message });
+      throw new Error("Failed to set video error state");
     }
   }
 
@@ -304,7 +335,7 @@ export class VideoService {
       // Later, you can implement CloudFront signed URLs here
       return video.manifestUrl;
     } catch (error) {
-      console.error("Error getting signed URL:", error);
+      logger.error("Error getting signed URL", { error: (error as Error).message });
       return null;
     }
   }
@@ -335,7 +366,7 @@ export class VideoService {
 
       return mappedVideos;
     } catch (error) {
-      console.error("Error searching videos:", error);
+      logger.error("Error searching videos", { error: (error as Error).message });
       throw new Error("Failed to search videos");
     }
   }
@@ -359,7 +390,7 @@ export class VideoService {
 
       return mappedVideos;
     } catch (error) {
-      console.error("Error fetching videos by status:", error);
+      logger.error("Error fetching videos by status", { error: (error as Error).message });
       throw new Error("Failed to fetch videos by status");
     }
   }
@@ -410,7 +441,7 @@ export class VideoService {
 
       return stats;
     } catch (error) {
-      console.error("Error getting video stats:", error);
+      logger.error("Error getting video stats", { error: (error as Error).message });
       throw new Error("Failed to get video statistics");
     }
   }

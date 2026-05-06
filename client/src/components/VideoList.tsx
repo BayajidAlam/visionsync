@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clock, Eye, FileVideo, Play, RefreshCw, Trash2 } from "lucide-react";
+import { Clock, Eye, FileVideo, Loader2, Play, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,12 +7,22 @@ import { Video, VideoStatus } from "../types";
 import { apiService } from "@/service/api";
 import { formatDuration, formatFileSize } from "@/lib/utils";
 
+interface VideoStatusUpdate {
+  videoId: string;
+  status: string;
+  timestamp?: string;
+  manifestUrl?: string;
+  videoUrl?: string;
+  thumbnailUrl?: string;
+}
+
 interface VideoListProps {
   refreshTrigger: number;
   onVideoSelect: (video: Video) => void;
   filterQuery?: string;
   statusFilter?: "all" | VideoStatus;
   onVideosLoaded?: (videos: Video[]) => void;
+  videoStatusUpdate?: VideoStatusUpdate | null;
 }
 
 export function VideoList({
@@ -21,10 +31,28 @@ export function VideoList({
   filterQuery = "",
   statusFilter = "all",
   onVideosLoaded,
+  videoStatusUpdate,
 }: VideoListProps) {
   const [videos, setVideos] = useState<Video[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Real-time status update from socket — no API round-trip needed
+  useEffect(() => {
+    if (!videoStatusUpdate) return;
+    setVideos((prev) =>
+      prev.map((v) => {
+        if (v.id !== videoStatusUpdate.videoId) return v;
+        return {
+          ...v,
+          status: videoStatusUpdate.status as VideoStatus,
+          ...(videoStatusUpdate.manifestUrl && { manifestUrl: videoStatusUpdate.manifestUrl }),
+          ...(videoStatusUpdate.thumbnailUrl && { thumbnailUrl: videoStatusUpdate.thumbnailUrl }),
+          ...(videoStatusUpdate.videoUrl && { videoUrl: videoStatusUpdate.videoUrl }),
+        };
+      }),
+    );
+  }, [videoStatusUpdate]);
 
   const fetchVideos = async () => {
     try {
@@ -34,8 +62,12 @@ export function VideoList({
       onVideosLoaded?.(response.data);
       setError(null);
     } catch (err) {
-      setError("Failed to fetch videos");
       console.error("Error fetching videos:", err);
+      // On rate limit (429), keep existing data rather than showing an error
+      if (err instanceof Error && (err.message.includes("429") || err.message.toLowerCase().includes("limit"))) {
+        return;
+      }
+      setError("Failed to fetch videos");
     } finally {
       setLoading(false);
     }
@@ -121,35 +153,31 @@ export function VideoList({
   const getStatusBadgeClass = (status: VideoStatus) => {
     switch (status) {
       case VideoStatus.UPLOADING:
-        return "bg-blue-100 text-blue-700 border-blue-200";
+        return "bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-800";
       case VideoStatus.UPLOADED:
-        return "bg-indigo-100 text-indigo-700 border-indigo-200";
+        return "bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-950/40 dark:text-indigo-400 dark:border-indigo-800";
       case VideoStatus.PROCESSING:
-        return "bg-amber-100 text-amber-700 border-amber-200";
+        return "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800";
       case VideoStatus.READY:
-        return "bg-emerald-100 text-emerald-700 border-emerald-200";
+        return "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800";
       case VideoStatus.ERROR:
-        return "bg-rose-100 text-rose-700 border-rose-200";
+        return "bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800";
       default:
-        return "bg-slate-100 text-slate-700 border-slate-200";
+        return "bg-slate-50 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
     }
   };
 
   return (
     <section className="yt-surface p-5 sm:p-6">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-            Video Library
-          </p>
-          <h2 className="mt-1 text-2xl font-bold text-foreground">Your Feed</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {filteredVideos.length} shown / {totalVideos} total •{" "}
-            {filterSummary}
+          <h2 className="text-lg font-bold text-foreground">All Videos</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">
+            {filteredVideos.length} of {totalVideos} · {filterSummary}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={fetchVideos}>
-          <RefreshCw className="mr-2 h-3.5 w-3.5" />
+        <Button variant="outline" size="sm" className="h-8 rounded-lg text-xs" onClick={fetchVideos}>
+          <RefreshCw className="mr-1.5 h-3 w-3" />
           Refresh
         </Button>
       </div>
@@ -202,7 +230,7 @@ export function VideoList({
           {filteredVideos.map((video) => (
             <Card
               key={video.id}
-              className="group overflow-hidden rounded-2xl border border-border/80 bg-card/90 py-0 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+              className="group cursor-pointer overflow-hidden rounded-2xl border border-border bg-card py-0 shadow-sm transition-all duration-200 hover:border-border hover:shadow-md"
               onClick={() => onVideoSelect(video)}
             >
               <CardContent className="p-0">
@@ -214,8 +242,10 @@ export function VideoList({
                       className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-700 to-slate-900">
-                      <Play className="h-10 w-10 text-white/70" />
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20">
+                        <Play className="h-5 w-5 translate-x-0.5 text-white/80" />
+                      </div>
                     </div>
                   )}
 
@@ -226,26 +256,32 @@ export function VideoList({
                   )}
                 </div>
 
-                <div className="space-y-3 p-4">
+                <div className="space-y-2.5 p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="line-clamp-2 text-sm font-semibold text-foreground">
+                    <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
                       {video.title}
                     </h3>
                     <Badge
                       variant="outline"
-                      className={`shrink-0 border ${getStatusBadgeClass(video.status)}`}
+                      className={`mt-0.5 shrink-0 rounded-full border px-2 py-0 text-[11px] font-semibold ${getStatusBadgeClass(video.status)}`}
                     >
+                      {(video.status === VideoStatus.PROCESSING ||
+                        video.status === VideoStatus.UPLOADING) && (
+                        <Loader2 className="mr-1 h-2.5 w-2.5 animate-spin" />
+                      )}
                       {video.status}
                     </Badge>
                   </div>
 
-                  <p className="line-clamp-2 text-xs text-muted-foreground">
-                    {video.description ||
-                      "Adaptive stream ready for distribution and playback."}
-                  </p>
+                  {video.description && (
+                    <p className="line-clamp-1 text-xs text-muted-foreground">
+                      {video.description}
+                    </p>
+                  )}
 
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2.5 text-[11px] text-muted-foreground">
                     <span>{formatFileSize(video.fileSize)}</span>
+                    <span className="text-border">·</span>
                     <span className="inline-flex items-center gap-1">
                       <Clock className="h-3 w-3" />
                       {new Date(video.createdAt).toLocaleDateString()}
@@ -253,22 +289,23 @@ export function VideoList({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 border-t border-border/70 px-4 pb-4 pt-2">
+                <div className="flex items-center gap-2 border-t border-border/60 px-4 pb-3.5 pt-2.5">
                   <Button
                     size="sm"
-                    className="flex-1"
+                    className="h-8 flex-1 rounded-lg text-xs"
                     disabled={video.status !== VideoStatus.READY}
                     onClick={(e) => {
                       e.stopPropagation();
                       onVideoSelect(video);
                     }}
                   >
-                    <Eye className="mr-1 h-3.5 w-3.5" />
+                    <Eye className="mr-1.5 h-3.5 w-3.5" />
                     Watch
                   </Button>
                   <Button
                     size="icon"
                     variant="ghost"
+                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive"
                     onClick={(e) => handleDelete(video.id, e)}
                   >
                     <Trash2 className="h-3.5 w-3.5" />

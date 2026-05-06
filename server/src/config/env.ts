@@ -74,6 +74,9 @@ interface Config {
   UPLOAD_RATE_LIMIT_MAX: number;
   RATE_LIMIT_STORE: string;
 
+  // Proxy / trust settings
+  TRUST_PROXY: boolean;
+
   // CORS Configuration
   FRONTEND_URL: string;
 
@@ -204,6 +207,9 @@ function validateEnv(): Config {
     RATE_LIMIT_STORE:
       process.env.RATE_LIMIT_STORE ||
       (process.env.NODE_ENV === "production" ? "redis" : "memory"),
+
+    // Proxy / trust settings
+    TRUST_PROXY: process.env.TRUST_PROXY === "true",
 
     // CORS Configuration
     FRONTEND_URL: process.env.FRONTEND_URL || "http://localhost:3000",

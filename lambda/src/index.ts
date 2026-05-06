@@ -58,53 +58,50 @@ const validateEnvironment = (): void => {
 
 // FIX: S3 Event Notifications wrap their payload differently from direct SQS messages.
 // S3 sends: { "Records": [{ "s3": { "bucket": {...}, "object": {...} } }] }
-// We extract videoId from the object key path: "videos/<videoId>/<filename>"
+// We extract videoId from the object key path: "videos/<videoId>/"
 const parseMessage = (record: SQSRecord): VideoMessage => {
+  // Parse S3 event notification format
   try {
     const body = JSON.parse(record.body);
+    const s3Record = body.Records && body.Records[0];
 
-    // S3 Event Notification format (our approach)
-    if (body.Records && body.Records[0]?.s3) {
-      const s3Record: S3EventRecord = body.Records[0];
-      const bucketName = s3Record.s3.bucket.name;
-      const key = s3Record.s3.object.key; // "videos/<videoId>/<filename>"
-      const fileSize = s3Record.s3.object.size;
-
-      const keyParts = key.split("/");
-      if (keyParts.length < 3 || keyParts[0] !== "videos") {
-        throw new Error(
-          `Unexpected S3 key format: ${key}. Expected: videos/<videoId>/<filename>`,
-        );
-      }
-
-      const videoId = keyParts[1];
-      const fileName = key; // full S3 key used as filename for the container
-
-      return {
-        videoId,
-        bucketName,
-        fileName,
-        originalFileName: keyParts[2],
-        fileSize,
-        uploadedBy: "s3-event-notification",
-        timestamp: new Date().toISOString(),
-      };
+    if (!s3Record || !s3Record.s3) {
+      throw new Error("Invalid S3 event format: Missing s3 record");
     }
 
-    // Legacy direct SQS message format (kept for backwards compatibility)
-    const message = body as VideoMessage;
-    if (!message.videoId || !message.bucketName || !message.fileName) {
+    const bucketName = s3Record.s3.bucket.name;
+    const s3Key = decodeURIComponent(
+      s3Record.s3.object.key.replace(/\+/g, " "),
+    );
+    const fileSize = s3Record.s3.object.size;
+
+    // Extract video ID from S3 key (format: videos/{videoId}/original.{ext})
+    const keyParts = s3Key.split("/");
+    if (keyParts.length < 3 || keyParts[0] !== "videos") {
       throw new Error(
-        "Missing required message fields: videoId, bucketName, fileName",
+        `Unexpected S3 key format: ${s3Key}. Expected: videos/<videoId>/`,
       );
     }
-    return message;
+
+    const videoId = keyParts[1];
+    const fileName = s3Key;
+
+    console.log("Extracted S3 info", { videoId, bucketName, s3Key });
+
+    return {
+      videoId,
+      bucketName,
+      fileName,
+      originalFileName: keyParts[2],
+      fileSize,
+      uploadedBy: "s3-event-notification",
+      timestamp: new Date().toISOString(),
+    };
   } catch (error) {
-    throw new Error(
-      `Invalid message format: ${
-        error instanceof Error ? error.message : "Unknown error"
-      }`,
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    console.error("Failed to parse S3 event", { error: errorMessage });
+    throw new Error(`Invalid message format: ${errorMessage}`);
   }
 };
 
@@ -117,7 +114,7 @@ const shouldUseSpot = (message: VideoMessage): boolean => {
 
   // Use Spot for most tasks (based on percentage)
   // Use regular Fargate for urgent/large files
-  const isUrgent = message.fileSize > 1024 * 1024 * 1024; // Files > 1GB
+  const isUrgent = message.fileSize > 10.24 * 10.24 * 10.24; // Files > 1GB
   const randomPercent = Math.random() * 100;
 
   return !isUrgent && randomPercent < spotPercentage;
@@ -165,29 +162,9 @@ const startECSTask = async (message: VideoMessage): Promise<string> => {
         {
           name: "video-processor",
           environment: [
+            { name: "VIDEO_ID", value: message.videoId },
             { name: "VIDEO_BUCKET", value: message.bucketName },
             { name: "VIDEO_FILE_NAME", value: message.fileName },
-            { name: "VIDEO_ID", value: message.videoId },
-            { name: "OUTPUT_BUCKET", value: process.env.PROCESSED_BUCKET! },
-            // NOTE: WEBHOOK_URL is NOT overridden here — the ECS task definition
-            // already has the correct http://ALB/api/webhook/processing-complete value.
-            // Overriding with process.env.WEBHOOK_URL would set it to "" (empty)
-            // because Lambda's environment doesn't have WEBHOOK_URL set, silently
-            // causing the container to skip the webhook and leaving video at "uploaded".
-            {
-              name: "AWS_REGION",
-              value: process.env.AWS_REGION || "ap-southeast-1",
-            },
-
-            // COST OPTIMIZATION: FFmpeg settings based on instance type
-            { name: "FFMPEG_PRESET", value: useSpot ? "medium" : "fast" },
-            { name: "FFMPEG_THREADS", value: useSpot ? "1" : "2" },
-            { name: "PROCESSING_PRIORITY", value: useSpot ? "low" : "normal" },
-            { name: "INSTANCE_TYPE", value: useSpot ? "spot" : "on-demand" },
-
-            // COST OPTIMIZATION: Batch processing for Spot instances
-            { name: "ENABLE_BATCH_MODE", value: useSpot ? "true" : "false" },
-            { name: "MAX_PROCESSING_TIME", value: useSpot ? "3600" : "1800" }, // 1 hour vs 30 min
           ],
         },
       ],
@@ -235,15 +212,6 @@ const startECSTask = async (message: VideoMessage): Promise<string> => {
             },
           ],
         };
-
-        // Update environment to reflect fallback
-        if (retryParams.overrides?.containerOverrides?.[0]?.environment) {
-          const env = retryParams.overrides.containerOverrides[0].environment;
-          const instanceTypeEnv = env.find((e) => e.name === "INSTANCE_TYPE");
-          if (instanceTypeEnv) {
-            instanceTypeEnv.value = "on-demand-fallback";
-          }
-        }
 
         const retryResult = await ecs.send(new RunTaskCommand(retryParams));
 

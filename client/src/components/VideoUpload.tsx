@@ -1,5 +1,3 @@
-// client/src/components/VideoUpload.tsx - Fixed with proper backend integration
-
 import { useState, useRef, useEffect } from "react";
 import { Upload, X, Check, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +8,21 @@ import { Badge } from "@/components/ui/badge";
 import { VideoUpload, VideoStatus } from "../types";
 import { apiService } from "@/service/api";
 import { formatFileSize } from "@/lib/utils";
+
+// MP4/MOV: 'ftyp' at byte offset 4 | AVI: 'RIFF' at 0 | WebM: EBML header at 0 | OGG: 'OggS' at 0
+async function validateVideoMagicBytes(file: File): Promise<boolean> {
+  const buf = await file.slice(0, 12).arrayBuffer();
+  const b = new Uint8Array(buf);
+  const hasFtyp = b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70;
+  const hasRiff = b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46;
+  const hasWebm = b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3;
+  const hasOgg  = b[0] === 0x4f && b[1] === 0x67 && b[2] === 0x67 && b[3] === 0x53;
+  return hasFtyp || hasRiff || hasWebm || hasOgg;
+}
+
+function isUrlExpired(expiresAt: string, bufferMs = 30_000): boolean {
+  return Date.now() + bufferMs >= new Date(expiresAt).getTime();
+}
 
 interface VideoUploadProps {
   onUploadComplete: (videoId: string) => void;
@@ -69,9 +82,12 @@ export function VideoUploadComponent({
 
   const startUpload = async (upload: VideoUpload, index: number) => {
     try {
-      console.log(`🚀 Starting upload for: ${upload.file.name}`);
+      // Validate file magic bytes before anything hits the network
+      const isRealVideo = await validateVideoMagicBytes(upload.file);
+      if (!isRealVideo) {
+        throw new Error("File is not a valid video (magic bytes mismatch). Re-encode and try again.");
+      }
 
-      // Step 1: Generate presigned URL
       setUploads((prev) =>
         prev.map((u, i) =>
           i === index
@@ -80,24 +96,22 @@ export function VideoUploadComponent({
         ),
       );
 
-      const { presignedUrl, videoId } = await apiService.generatePresignedUrl(
+      const { presignedUrl, videoId, expiresAt } = await apiService.generatePresignedUrl(
         upload.file.name,
         upload.file.type,
         upload.file.size,
       );
 
-      console.log(`✅ Generated presigned URL for: ${videoId}`);
+      // Guard: if URL already expired before we even start (clock skew / slow network), re-fetch
+      if (isUrlExpired(expiresAt)) {
+        throw new Error("Presigned URL expired before upload could start. Please retry.");
+      }
 
-      // Notify parent immediately so socket room is joined early
       onUploadStart?.(videoId);
 
-      // Update with videoId
       setUploads((prev) =>
         prev.map((u, i) => (i === index ? { ...u, videoId, progress: 10 } : u)),
       );
-
-      // Step 2: Upload to S3
-      console.log(`📤 Uploading to S3: ${upload.file.name}`);
 
       const uploadStartTime = Date.now();
       await apiService.uploadToS3(
@@ -122,16 +136,12 @@ export function VideoUploadComponent({
         },
       );
 
-      console.log(`✅ S3 upload completed: ${videoId}`);
-
-      // Step 3: Confirm upload with backend (🔥 THIS WAS MISSING!)
+      // Step 3: Confirm upload with backend
       setUploads((prev) =>
         prev.map((u, i) => (i === index ? { ...u, progress: 95 } : u)),
       );
 
       await apiService.confirmUpload(videoId);
-
-      console.log(`✅ Upload confirmed with backend: ${videoId}`);
 
       // Step 4: Mark as complete
       setUploads((prev) =>
@@ -146,11 +156,8 @@ export function VideoUploadComponent({
         ),
       );
 
-      console.log(`🎉 Upload process completed: ${videoId}`);
       onUploadComplete(videoId);
     } catch (error) {
-      console.error("❌ Upload failed:", error);
-
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
 
