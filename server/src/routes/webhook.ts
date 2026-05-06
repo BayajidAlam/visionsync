@@ -65,10 +65,7 @@ router.post("/processing-complete", validateWebhookPayload, async (req: express.
         videoId,
         status.toUpperCase() as VideoStatus,
       );
-
-      socketService.emitVideoStatus(videoId, status.toUpperCase(), {
-        message: `Video is ${status}`,
-      });
+      // updateVideoStatus already emits the socket event — no duplicate emit here
 
       if (status.toLowerCase() === "processing") {
         await saveNotification(
