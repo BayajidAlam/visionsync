@@ -201,6 +201,42 @@ export class VideoProcessor {
     return Object.keys(progress).length > 0 ? progress : null;
   }
 
+  private async detectVideoRotation(inputPath: string): Promise<number> {
+    return new Promise((resolve) => {
+      const ffprobe = spawn('ffprobe', [
+        '-v', 'quiet',
+        '-print_format', 'json',
+        '-show_streams',
+        '-select_streams', 'v:0',
+        inputPath,
+      ]);
+
+      let output = '';
+      ffprobe.stdout.on('data', (d: Buffer) => { output += d.toString(); });
+      ffprobe.on('close', () => {
+        try {
+          const info = JSON.parse(output);
+          const stream = info.streams?.[0];
+          // tags.rotate is set by phones (MP4/MOV)
+          const tagRotate = parseInt(stream?.tags?.rotate ?? '0', 10);
+          if (tagRotate) { resolve(tagRotate); return; }
+          // side_data_list displaymatrix (newer containers)
+          const sideData = stream?.side_data_list?.find(
+            (s: any) => s.side_data_type === 'Display Matrix',
+          );
+          if (sideData?.rotation) {
+            resolve(Math.abs(parseInt(String(sideData.rotation), 10)));
+            return;
+          }
+          resolve(0);
+        } catch {
+          resolve(0);
+        }
+      });
+      ffprobe.on('error', () => resolve(0));
+    });
+  }
+
   private async processVideoWithFFmpeg(
     inputPath: string,
     outputDir: string,
@@ -215,9 +251,22 @@ export class VideoProcessor {
       maxTime: this.env.maxProcessingTime,
     });
 
+    // filter_complex does NOT auto-apply rotation metadata — detect and handle explicitly
+    const rotationDeg = await this.detectVideoRotation(inputPath);
+    console.log(`Detected video rotation: ${rotationDeg}°`);
+    const transposePrefix =
+      rotationDeg === 90  ? '[0:v]transpose=1[vr]; [vr]' :
+      rotationDeg === 270 ? '[0:v]transpose=2[vr]; [vr]' :
+      rotationDeg === 180 ? '[0:v]hflip[vhf]; [vhf]vflip[vr]; [vr]' :
+                            '[0:v]';
+
     return new Promise((resolve, reject) => {
       // COST OPTIMIZATION: Optimized FFmpeg arguments for faster processing
       const ffmpegArgs = [
+        // Disable FFmpeg's built-in auto-rotation so our explicit transpose (above) is the
+        // only rotation applied. Without this, FFmpeg 6 auto-rotates before filter_complex
+        // and our transpose rotates a second time.
+        "-noautorotate",
         "-i",
         inputPath,
 
@@ -229,8 +278,13 @@ export class VideoProcessor {
         // Processing timeout is enforced at the Node.js process level via setTimeout below.
 
         "-filter_complex",
-        // Keep a consistent rendition ladder so clients always expose full resolution options.
-        "[0:v]split=4[v1][v2][v3][v4]; [v1]scale=1920:1080[v1out]; [v2]scale=1280:720[v2out]; [v3]scale=960:540[v3out]; [v4]scale=640:360[v4out]",
+        // transposePrefix applies rotation from metadata before split (phones store 1920x1080+rotate=90).
+        // if(gte(iw,ih),...) then checks display-corrected dims: landscape scales by width, portrait by height.
+        `${transposePrefix}split=4[v1][v2][v3][v4]; ` +
+        "[v1]scale=w='if(gte(iw,ih),min(1920,iw),-2)':h='if(gte(iw,ih),-2,min(1920,ih))'[v1out]; " +
+        "[v2]scale=w='if(gte(iw,ih),min(1280,iw),-2)':h='if(gte(iw,ih),-2,min(1280,ih))'[v2out]; " +
+        "[v3]scale=w='if(gte(iw,ih),min(960,iw),-2)':h='if(gte(iw,ih),-2,min(960,ih))'[v3out]; " +
+        "[v4]scale=w='if(gte(iw,ih),min(640,iw),-2)':h='if(gte(iw,ih),-2,min(640,ih))'[v4out]",
 
         // COST OPTIMIZATION: Video streams with optimized bitrates
         ...(this.env.processingPriority === "low"
@@ -462,7 +516,7 @@ export class VideoProcessor {
         "-vframes",
         "1",
         "-vf",
-        "scale=1280:-2",
+        "scale=w='if(gte(iw,ih),min(1280,iw),-2)':h='if(gte(iw,ih),-2,min(1280,ih))'",
         "-q:v",
         "3",
         "-y",
@@ -487,7 +541,7 @@ export class VideoProcessor {
             "-vframes",
             "1",
             "-vf",
-            "scale=1280:-2",
+            "scale=w='if(gte(iw,ih),min(1280,iw),-2)':h='if(gte(iw,ih),-2,min(1280,ih))'",
             "-q:v",
             "3",
             "-y",
@@ -532,6 +586,66 @@ export class VideoProcessor {
       }),
     );
     console.log(`Thumbnail uploaded → s3://${this.env.outputBucket}/${key}`);
+  }
+
+  private async renameSegmentsWithQualityLabels(outputDir: string): Promise<void> {
+    const repIdToLabel: Record<string, string> = {
+      '0': '1080p',
+      '1': '720p',
+      '2': '540p',
+      '3': '360p',
+      '4': 'audio',
+    };
+
+    const files = await fs.readdir(outputDir);
+
+    for (const file of files) {
+      if (!file.endsWith('.m4s')) continue;
+
+      const initMatch = file.match(/^init-(\d+)\.m4s$/);
+      if (initMatch) {
+        const label = repIdToLabel[initMatch[1]];
+        if (label) {
+          await fs.rename(
+            path.join(outputDir, file),
+            path.join(outputDir, `init-${label}.m4s`),
+          );
+        }
+        continue;
+      }
+
+      const chunkMatch = file.match(/^chunk-(\d+)-(\d+)\.m4s$/);
+      if (chunkMatch) {
+        const label = repIdToLabel[chunkMatch[1]];
+        if (label) {
+          await fs.rename(
+            path.join(outputDir, file),
+            path.join(outputDir, `chunk-${label}-seg${chunkMatch[2]}.m4s`),
+          );
+        }
+      }
+    }
+
+    let mpd = await fs.readFile(path.join(outputDir, 'manifest.mpd'), 'utf-8');
+
+    // Change Representation id="0" → id="1080p" etc. so $RepresentationID$ resolves
+    // to the quality label when the player constructs segment URLs.
+    mpd = mpd.replace(
+      /<Representation\b([^>]*)\bid="(\d+)"/g,
+      (match, attrs: string, id: string) => {
+        const label = repIdToLabel[id];
+        return label ? `<Representation${attrs}id="${label}"` : match;
+      },
+    );
+
+    // Add "seg" prefix to $Number$ so player requests chunk-1080p-seg1.m4s
+    mpd = mpd.replace(
+      /media="chunk-\$RepresentationID\$-\$Number\$\.m4s"/g,
+      'media="chunk-$RepresentationID$-seg$Number$.m4s"',
+    );
+
+    await fs.writeFile(path.join(outputDir, 'manifest.mpd'), mpd);
+    console.log('Segments renamed with quality labels');
   }
 
   private async uploadProcessedFiles(outputDir: string): Promise<any[]> {
@@ -654,6 +768,9 @@ export class VideoProcessor {
 
       // Process video with FFmpeg
       await this.processVideoWithFFmpeg(inputPath, outputPath);
+
+      // Rename segments to include quality labels (e.g. chunk-1080p-seg1.m4s)
+      await this.renameSegmentsWithQualityLabels(outputPath);
 
       // Upload processed files
       const uploadResults = await this.uploadProcessedFiles(outputPath);

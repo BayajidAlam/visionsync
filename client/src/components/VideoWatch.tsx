@@ -19,7 +19,6 @@ import {
   Clock,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Video,
   VideoStatus,
@@ -141,37 +140,29 @@ function buildFallbackTimeline(video: Video): DBNotification[] {
   );
 }
 
-function statusColor(status?: string): string {
-  switch (status) {
-    case "ready":
-      return "bg-emerald-500";
-    case "processing":
-      return "bg-amber-500";
-    case "uploaded":
-      return "bg-sky-500";
-    case "uploading":
-      return "bg-blue-400";
-    case "error":
-      return "bg-rose-500";
-    default:
-      return "bg-slate-400";
-  }
-}
 
 function TimelineIcon({ kind }: { kind: NotificationKind }) {
   switch (kind) {
     case "ready":
-      return <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />;
+      return <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />;
     case "error":
-      return <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />;
+      return <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />;
     case "processing":
-      return (
-        <Loader2 className="h-4 w-4 text-amber-400 shrink-0 animate-spin" />
-      );
+      return <Loader2 className="h-3.5 w-3.5 text-amber-400 animate-spin" />;
     case "upload":
-      return <UploadCloud className="h-4 w-4 text-sky-400 shrink-0" />;
+      return <UploadCloud className="h-3.5 w-3.5 text-sky-400" />;
     default:
-      return <Clock className="h-4 w-4 text-slate-400 shrink-0" />;
+      return <Clock className="h-3.5 w-3.5 text-white/40" />;
+  }
+}
+
+function timelineIconBg(kind: NotificationKind): string {
+  switch (kind) {
+    case "ready":      return "bg-emerald-500/15";
+    case "error":      return "bg-rose-500/15";
+    case "processing": return "bg-amber-500/15";
+    case "upload":     return "bg-sky-500/15";
+    default:           return "bg-white/8";
   }
 }
 
@@ -194,13 +185,16 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
   const [qualityLevels, setQualityLevels] = useState<DashQualityLevel[]>([]);
   const [currentQuality, setCurrentQuality] = useState<number>(-1);
   const [showQualityMenu, setShowQualityMenu] = useState(false);
+  const [videoNaturalSize, setVideoNaturalSize] = useState<{ w: number; h: number } | null>(null);
+  const [innerStyle, setInnerStyle] = useState<React.CSSProperties>({ width: '100%', height: '100%', alignSelf: 'stretch' });
 
   const [timeline, setTimeline] = useState<DBNotification[]>([]);
   const [timelineLoading, setTimelineLoading] = useState(false);
   const [timelineUnavailable, setTimelineUnavailable] = useState(false);
 
   const isReady = video.status === VideoStatus.READY;
-  const hasAdaptiveStream = Boolean(video.manifestUrl);
+  const manifestUrl = apiService.getManifestUrl(video.id);
+  const hasAdaptiveStream = Boolean(manifestUrl);
 
   const sortedQualityLevels = useMemo(
     () =>
@@ -295,6 +289,41 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
     return false;
   }, []);
 
+  const captureVideoSize = useCallback(() => {
+    const el = videoRef.current;
+    if (el && el.videoWidth > 0 && el.videoHeight > 0) {
+      setVideoNaturalSize(prev =>
+        prev?.w === el.videoWidth && prev?.h === el.videoHeight
+          ? prev
+          : { w: el.videoWidth, h: el.videoHeight },
+      );
+    }
+  }, []);
+
+  // Recompute inner wrapper px size whenever container resizes or video dimensions change
+  useEffect(() => {
+    const compute = () => {
+      const container = containerRef.current;
+      if (!container || !videoNaturalSize) {
+        setInnerStyle({ width: '100%', height: '100%', alignSelf: 'stretch' });
+        return;
+      }
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
+      if (cw === 0 || ch === 0) return;
+      const ratio = videoNaturalSize.w / videoNaturalSize.h;
+      if (cw / ch > ratio) {
+        setInnerStyle({ width: `${Math.round(ch * ratio)}px`, height: `${ch}px` });
+      } else {
+        setInnerStyle({ width: `${cw}px`, height: `${Math.round(cw / ratio)}px` });
+      }
+    };
+    compute();
+    const ro = new ResizeObserver(compute);
+    if (containerRef.current) ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, [videoNaturalSize]);
+
   // ── Load timeline ────────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
@@ -347,12 +376,15 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
 
     let qualityProbe: ReturnType<typeof setInterval> | null = null;
 
+    setVideoNaturalSize(null);
+    setInnerStyle({ width: '100%', height: '100%', alignSelf: 'stretch' });
+
     try {
       if (dashPlayerRef.current) dashPlayerRef.current.destroy();
       setQualityLevels([]);
       setCurrentQuality(-1);
 
-      if (video.manifestUrl) {
+      if (manifestUrl) {
         const player = _dashjs().MediaPlayer().create();
         player.updateSettings({
           streaming: {
@@ -362,6 +394,7 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
 
         player.on("streamInitialized", () => {
           refreshQualityLevels();
+          captureVideoSize();
         });
 
         player.on("manifestLoaded", () => {
@@ -370,11 +403,13 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
 
         player.on("playbackMetadataLoaded", () => {
           refreshQualityLevels();
+          captureVideoSize();
         });
 
         player.on("qualityChangeRendered", (e: any) => {
           setCurrentQuality((prev) => (prev === -1 ? -1 : e.newQuality));
           refreshQualityLevels();
+          captureVideoSize();
         });
 
         player.on("error", (e: any) => {
@@ -382,13 +417,18 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
           setPlayerError("Streaming error — try refreshing.");
         });
 
-        player.initialize(videoRef.current, video.manifestUrl, false);
+        player.initialize(videoRef.current, manifestUrl, false);
         dashPlayerRef.current = player;
+
+        // video `resize` fires when decoder resolves actual frame dimensions —
+        // more reliable than loadedMetadata for DASH/MSE streams
+        videoRef.current?.addEventListener('resize', captureVideoSize);
 
         let tries = 0;
         qualityProbe = setInterval(() => {
           tries += 1;
           const found = refreshQualityLevels();
+          captureVideoSize();
           if (found || tries >= 20) {
             if (qualityProbe) {
               clearInterval(qualityProbe);
@@ -408,12 +448,13 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
 
     return () => {
       if (qualityProbe) clearInterval(qualityProbe);
+      videoRef.current?.removeEventListener('resize', captureVideoSize);
       if (dashPlayerRef.current) {
         dashPlayerRef.current.destroy();
         dashPlayerRef.current = null;
       }
     };
-  }, [isReady, video, refreshQualityLevels]);
+  }, [isReady, video, refreshQualityLevels, captureVideoSize]);
 
   // ── Fullscreen listener ──────────────────────────────────────────────────
   useEffect(() => {
@@ -634,106 +675,96 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#0f0f0f] text-white overflow-hidden">
-      {/* ── Top bar ── */}
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/10 shrink-0 bg-[#121212]">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="rounded-full text-white hover:bg-white/10"
-          aria-label="Back to feed"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </Button>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold leading-tight line-clamp-1 text-white">
-            {video.title}
-          </p>
-          <p className="text-xs text-white/50">{video.filename}</p>
-        </div>
-        <Badge
-          variant="outline"
-          className={cn(
-            "rounded-full border text-[11px] font-medium",
-            badge.className,
-          )}
-        >
-          {badge.label}
-        </Badge>
-      </div>
+    <div className="fixed inset-0 z-50 bg-[#0a0a0a] text-white overflow-hidden">
+      <div className="flex h-full flex-col lg:flex-row">
 
-      {/* ── Body ── */}
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        {/* left: player area */}
-        <div className="relative min-h-0 flex-1 bg-black">
+        {/* ── LEFT: Player ── */}
+        <div className="relative flex-1 min-h-0 bg-black flex flex-col">
+
+          {/* Floating top overlay — back button + title + badge */}
+          <div className="absolute inset-x-0 top-0 z-30 pointer-events-none">
+            <div className="h-28 bg-gradient-to-b from-black/85 to-transparent" />
+            <div className="absolute inset-x-0 top-0 flex items-start gap-3 px-5 py-4">
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Back"
+                className="pointer-events-auto mt-0.5 rounded-full bg-black/50 p-2.5 text-white backdrop-blur-sm transition hover:bg-white/15 active:scale-95"
+              >
+                <ArrowLeft className="h-4.5 w-4.5" />
+              </button>
+              <div className="pointer-events-none flex-1 min-w-0 pt-1">
+                <p className="text-sm font-semibold text-white/95 line-clamp-1 leading-snug">
+                  {video.title}
+                </p>
+                <p className="mt-0.5 text-[11px] text-white/40 line-clamp-1">{video.filename}</p>
+              </div>
+              <Badge
+                variant="outline"
+                className={cn("pointer-events-none mt-1 shrink-0 rounded-full border text-[11px] font-medium", badge.className)}
+              >
+                {badge.label}
+              </Badge>
+            </div>
+          </div>
+
           {isReady ? (
             <div
               ref={containerRef}
-              className="relative h-full w-full cursor-pointer select-none"
+              className="relative h-full w-full flex items-center justify-center cursor-pointer select-none"
               onMouseMove={showControlsTemporarily}
               onClick={togglePlay}
             >
+              {/* Inner wrapper: JS-computed px size matching video aspect ratio */}
+              <div className="relative shrink-0" style={innerStyle}>
               <video
                 ref={videoRef}
-                className="h-full w-full object-contain"
+                className="h-full w-full"
                 poster={video.thumbnailUrl || undefined}
-                onTimeUpdate={() =>
-                  setCurrentTime(videoRef.current?.currentTime ?? 0)
-                }
-                onLoadedMetadata={() =>
-                  setDuration(videoRef.current?.duration ?? 0)
-                }
-                onPlay={() => {
-                  setIsPlaying(true);
-                  showControlsTemporarily();
+                onTimeUpdate={() => setCurrentTime(videoRef.current?.currentTime ?? 0)}
+                onLoadedMetadata={() => {
+                  const el = videoRef.current;
+                  if (!el) return;
+                  setDuration(el.duration ?? 0);
+                  captureVideoSize();
                 }}
-                onPause={() => {
-                  setIsPlaying(false);
-                  setShowControls(true);
-                }}
-                onEnded={() => {
-                  setIsPlaying(false);
-                  setShowControls(true);
-                }}
+                onPlay={() => { setIsPlaying(true); showControlsTemporarily(); }}
+                onPause={() => { setIsPlaying(false); setShowControls(true); }}
+                onEnded={() => { setIsPlaying(false); setShowControls(true); }}
                 onError={() => setPlayerError("Failed to load video stream.")}
               />
 
-              {/* Overlay error */}
+              {/* Error overlay */}
               {playerError && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm">
-                  <div className="rounded-2xl border border-rose-500/30 bg-rose-950/60 px-6 py-4 text-center shadow-xl">
-                    <AlertTriangle className="mx-auto mb-2 h-8 w-8 text-rose-400" />
-                    <p className="text-sm font-semibold text-rose-300">
-                      {playerError}
-                    </p>
+                <div className="absolute inset-0 flex items-center justify-center bg-black/75 backdrop-blur-sm">
+                  <div className="rounded-2xl border border-rose-500/25 bg-rose-950/70 px-8 py-6 text-center shadow-2xl">
+                    <AlertTriangle className="mx-auto mb-3 h-9 w-9 text-rose-400" />
+                    <p className="text-sm font-semibold text-rose-300">{playerError}</p>
                   </div>
                 </div>
               )}
 
-              {/* Big play/pause overlay */}
+              {/* Center play overlay */}
               {!isPlaying && !playerError && (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="rounded-full bg-black/50 p-5 backdrop-blur-sm">
-                    <Play className="h-10 w-10 text-white fill-white" />
+                  <div className="rounded-full bg-black/55 p-6 ring-1 ring-white/10 backdrop-blur-sm">
+                    <Play className="h-10 w-10 fill-white text-white translate-x-0.5" />
                   </div>
                 </div>
               )}
 
-              {/* Controls bar */}
+              </div>
+
+              {/* Controls bar — outside portrait-constrained inner div so it spans full player width */}
               <div
                 className={cn(
-                  "absolute bottom-0 left-0 right-0 transition-opacity duration-300",
-                  showControls
-                    ? "opacity-100"
-                    : "opacity-0 pointer-events-none",
+                  "absolute bottom-0 inset-x-0 transition-opacity duration-300",
+                  showControls ? "opacity-100" : "opacity-0 pointer-events-none",
                 )}
                 onClick={(e) => e.stopPropagation()}
               >
-                {/* Gradient fade */}
-                <div className="h-24 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
-
-                <div className="bg-black/60 px-4 pb-4 pt-2 backdrop-blur-sm space-y-2">
+                <div className="h-28 bg-gradient-to-t from-black/90 to-transparent pointer-events-none" />
+                <div className="bg-black/55 px-5 pb-5 pt-1 space-y-2.5">
                   {/* Seek bar */}
                   <div className="group relative flex items-center">
                     <input
@@ -743,172 +774,83 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
                       step={0.1}
                       value={currentTime}
                       onChange={handleSeek}
-                      className="yt-seek-bar w-full h-1 rounded-full cursor-pointer appearance-none bg-white/30 accent-[#f00] group-hover:h-2 transition-all"
+                      className="yt-seek-bar w-full h-1 rounded-full cursor-pointer appearance-none bg-white/25 accent-white group-hover:h-1.5 transition-all"
                       aria-label="Seek"
                     />
                   </div>
 
-                  {/* Buttons row */}
-                  <div className="flex items-center gap-2">
-                    {/* Play/Pause */}
-                    <button
-                      type="button"
-                      onClick={togglePlay}
-                      className="rounded-full p-1.5 text-white hover:bg-white/10 transition"
-                      aria-label={isPlaying ? "Pause" : "Play"}
-                    >
-                      {isPlaying ? (
-                        <Pause className="h-5 w-5 fill-white" />
-                      ) : (
-                        <Play className="h-5 w-5 fill-white" />
-                      )}
+                  {/* Button row */}
+                  <div className="flex items-center gap-1.5">
+                    <button type="button" onClick={togglePlay} className="rounded-full p-1.5 hover:bg-white/10 transition" aria-label={isPlaying ? "Pause" : "Play"}>
+                      {isPlaying ? <Pause className="h-5 w-5 fill-white" /> : <Play className="h-5 w-5 fill-white" />}
                     </button>
 
-                    {/* Volume */}
-                    <button
-                      type="button"
-                      onClick={toggleMute}
-                      className="rounded-full p-1.5 text-white hover:bg-white/10 transition"
-                      aria-label={isMuted ? "Unmute" : "Mute"}
-                    >
-                      {isMuted || volume === 0 ? (
-                        <VolumeX className="h-5 w-5" />
-                      ) : (
-                        <Volume2 className="h-5 w-5" />
-                      )}
+                    <button type="button" onClick={toggleMute} className="rounded-full p-1.5 hover:bg-white/10 transition" aria-label={isMuted ? "Unmute" : "Mute"}>
+                      {isMuted || volume === 0 ? <VolumeX className="h-4.5 w-4.5" /> : <Volume2 className="h-4.5 w-4.5" />}
                     </button>
                     <input
-                      type="range"
-                      min={0}
-                      max={1}
-                      step={0.01}
+                      type="range" min={0} max={1} step={0.01}
                       value={isMuted ? 0 : volume}
                       onChange={handleVolumeChange}
-                      className="w-20 h-1 rounded-full cursor-pointer appearance-none bg-white/30 accent-white hidden sm:block"
+                      className="w-18 h-1 rounded-full cursor-pointer appearance-none bg-white/25 accent-white hidden sm:block"
                       aria-label="Volume"
                     />
 
-                    {/* Time */}
-                    <span className="text-xs text-white/70 font-mono tabular-nums">
+                    <span className="ml-1 text-xs text-white/60 font-mono tabular-nums">
                       {formatTime(currentTime)} / {formatTime(duration)}
                     </span>
 
-                    {/* Keyboard hint */}
-                    <span className="hidden lg:block text-[10px] text-white/25 select-none ml-1">
+                    <span className="hidden lg:block ml-2 text-[10px] text-white/20 select-none">
                       Space · ←→ ±5s · M · F
                     </span>
 
-                    <div className="ml-auto flex items-center gap-1">
-                      {/* Resolution (DASH only) */}
+                    <div className="ml-auto flex items-center gap-0.5">
+                      {/* Quality */}
                       {hasAdaptiveStream && (
                         <div className="relative">
                           <button
                             type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              refreshQualityLevels();
-                              setShowQualityMenu((p) => !p);
-                            }}
-                            className="flex items-center gap-1 rounded px-2 py-1 text-xs text-white hover:bg-white/10 transition"
-                            aria-label="Resolution settings"
+                            onClick={(e) => { e.stopPropagation(); refreshQualityLevels(); setShowQualityMenu((p) => !p); }}
+                            className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs text-white/80 hover:bg-white/10 transition"
+                            aria-label="Quality"
                           >
                             <Settings className="h-3.5 w-3.5" />
-                            <span>
-                              Resolution:{" "}
-                              {currentQuality === -1
-                                ? "Auto"
-                                : selectedQualityTrack?.height
-                                  ? `${selectedQualityTrack.height}p`
-                                  : selectedQualityTrack
-                                    ? formatBitrate(
-                                        selectedQualityTrack.bitrate,
-                                      )
-                                    : "Auto"}
+                            <span className="hidden sm:inline">
+                              {currentQuality === -1 ? "Auto" : selectedQualityTrack?.height ? `${selectedQualityTrack.height}p` : selectedQualityTrack ? formatBitrate(selectedQualityTrack.bitrate) : "Auto"}
                             </span>
                           </button>
 
                           {showQualityMenu && (
-                            <div
-                              className="absolute bottom-full right-0 mb-2 min-w-[9rem] rounded-xl border border-white/10 bg-[#212121] p-1 shadow-2xl"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-widest text-white/50">
-                                Resolution
-                              </p>
-                              <button
-                                type="button"
-                                className={cn(
-                                  "w-full rounded-lg px-3 py-1.5 text-left text-xs hover:bg-white/10 transition",
-                                  currentQuality === -1 && "text-[#f00]",
-                                )}
-                                onClick={() => changeQuality(-1)}
-                              >
+                            <div className="absolute bottom-full right-0 mb-2 min-w-[10rem] rounded-xl border border-white/10 bg-[#1a1a1a] p-1.5 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+                              <p className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-white/40">Quality</p>
+                              <button type="button" className={cn("w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-white/8 transition", currentQuality === -1 && "text-white font-medium")} onClick={() => changeQuality(-1)}>
                                 Auto (Adaptive)
                               </button>
                               {qualityLevels.length === 0 ? (
-                                <div className="px-3 py-2">
-                                  <p className="text-[11px] text-white/45">
-                                    Loading quality options…
-                                  </p>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      refreshQualityLevels();
-                                    }}
-                                    className="mt-2 rounded bg-white/10 px-2 py-1 text-[10px] text-white hover:bg-white/20"
-                                  >
-                                    Refresh qualities
-                                  </button>
-                                </div>
+                                <p className="px-3 py-2 text-[11px] text-white/40">Loading…</p>
                               ) : (
-                                sortedQualityLevels.map((track) => {
-                                  const label = track.height
-                                    ? `${track.height}p — ${formatBitrate(track.bitrate)}`
-                                    : formatBitrate(track.bitrate);
-                                  return (
-                                    <button
-                                      key={`${track.id ?? "track"}-${track.index}`}
-                                      type="button"
-                                      className={cn(
-                                        "w-full rounded-lg px-3 py-1.5 text-left text-xs hover:bg-white/10 transition",
-                                        currentQuality === track.index &&
-                                          "text-[#f00]",
-                                      )}
-                                      onClick={() => changeQuality(track.index)}
-                                    >
-                                      {label}
-                                    </button>
-                                  );
-                                })
+                                sortedQualityLevels.map((track) => (
+                                  <button
+                                    key={`${track.id ?? "track"}-${track.index}`}
+                                    type="button"
+                                    className={cn("w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-white/8 transition", currentQuality === track.index && "text-white font-medium")}
+                                    onClick={() => changeQuality(track.index)}
+                                  >
+                                    {track.height ? `${track.height}p` : formatBitrate(track.bitrate)}
+                                    <span className="ml-1.5 text-white/35">{formatBitrate(track.bitrate)}</span>
+                                  </button>
+                                ))
                               )}
                             </div>
                           )}
                         </div>
                       )}
 
-                      {/* PiP */}
-                      <button
-                        type="button"
-                        onClick={togglePiP}
-                        className="rounded-full p-1.5 text-white hover:bg-white/10 transition"
-                        aria-label="Picture-in-picture"
-                      >
-                        <PictureInPicture2 className="h-4 w-4" />
+                      <button type="button" onClick={togglePiP} className="rounded-full p-1.5 hover:bg-white/10 transition" aria-label="Picture-in-picture">
+                        <PictureInPicture2 className="h-4 w-4 text-white/80" />
                       </button>
-
-                      {/* Fullscreen */}
-                      <button
-                        type="button"
-                        onClick={toggleFullscreen}
-                        className="rounded-full p-1.5 text-white hover:bg-white/10 transition"
-                        aria-label="Toggle fullscreen"
-                      >
-                        {isFullscreen ? (
-                          <Minimize className="h-4 w-4" />
-                        ) : (
-                          <Maximize className="h-4 w-4" />
-                        )}
+                      <button type="button" onClick={toggleFullscreen} className="rounded-full p-1.5 hover:bg-white/10 transition" aria-label="Toggle fullscreen">
+                        {isFullscreen ? <Minimize className="h-4 w-4 text-white/80" /> : <Maximize className="h-4 w-4 text-white/80" />}
                       </button>
                     </div>
                   </div>
@@ -916,158 +858,110 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
               </div>
             </div>
           ) : (
-            /* Non-ready state — show status placeholder */
-            <div className="relative flex h-full items-center justify-center px-6">
+            /* Not-ready placeholder */
+            <div className="relative flex flex-1 items-center justify-center">
               {video.thumbnailUrl && (
                 <>
-                  <div
-                    className="absolute inset-0 bg-cover bg-center"
-                    style={{ backgroundImage: `url(${video.thumbnailUrl})` }}
-                  />
-                  <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
+                  <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${video.thumbnailUrl})` }} />
+                  <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
                 </>
               )}
-              <div className="relative z-10 max-w-sm text-center">
+              <div className="relative z-10 max-w-sm px-8 text-center">
                 {video.status === VideoStatus.PROCESSING ? (
-                  <Loader2 className="mx-auto mb-4 h-12 w-12 animate-spin text-amber-400" />
+                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/15 ring-1 ring-amber-500/25">
+                    <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
+                  </div>
                 ) : video.status === VideoStatus.ERROR ? (
-                  <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-rose-400" />
+                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-rose-500/15 ring-1 ring-rose-500/25">
+                    <AlertTriangle className="h-8 w-8 text-rose-400" />
+                  </div>
                 ) : (
-                  <UploadCloud className="mx-auto mb-4 h-12 w-12 text-sky-400" />
+                  <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-sky-500/15 ring-1 ring-sky-500/25">
+                    <UploadCloud className="h-8 w-8 text-sky-400" />
+                  </div>
                 )}
-                <p className="text-lg font-semibold text-white">
-                  {video.status === VideoStatus.PROCESSING
-                    ? "Transcoding in progress…"
-                    : video.status === VideoStatus.ERROR
-                      ? "Processing failed"
-                      : "Awaiting processing"}
+                <p className="text-base font-semibold text-white/95">
+                  {video.status === VideoStatus.PROCESSING ? "Transcoding in progress" : video.status === VideoStatus.ERROR ? "Processing failed" : "Awaiting processing"}
                 </p>
-                <p className="mt-2 text-sm text-white/60">
+                <p className="mt-2 text-sm text-white/50 leading-relaxed">
                   {video.status === VideoStatus.PROCESSING
-                    ? "Your video is being converted into multiple quality levels. Check the timeline below for live updates."
+                    ? "Converting to multiple quality levels. Updates appear in the timeline."
                     : video.status === VideoStatus.ERROR
-                      ? "Something went wrong during processing. Please re-upload the video."
-                      : "Processing will start automatically once the upload is confirmed."}
+                      ? "Something went wrong. Please re-upload the video."
+                      : "Processing starts automatically after upload confirms."}
                 </p>
               </div>
             </div>
           )}
         </div>
 
-        {/* right: info + timeline sidebar */}
-        <div className="lg:w-[360px] xl:w-[400px] shrink-0 flex flex-col border-l border-white/10 bg-[#121212] overflow-y-auto">
-          {/* Thumbnail strip */}
+        {/* ── RIGHT: Sidebar ── */}
+        <div className="w-full lg:w-[340px] xl:w-[360px] shrink-0 flex flex-col border-t border-white/[0.06] lg:border-t-0 lg:border-l bg-[#111] overflow-y-auto">
+
+          {/* Thumbnail */}
           {video.thumbnailUrl && (
-            <div className="relative aspect-video w-full shrink-0 overflow-hidden border-b border-white/10 bg-black">
-              <img
-                src={video.thumbnailUrl}
-                alt={video.title}
-                className="h-full w-full object-cover"
-              />
+            <div className="relative aspect-video w-full shrink-0 overflow-hidden bg-black">
+              <img src={video.thumbnailUrl} alt={video.title} className="h-full w-full object-cover opacity-95" />
               {!isReady && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/45">
                   {video.status === VideoStatus.PROCESSING && (
-                    <Loader2 className="h-8 w-8 animate-spin text-amber-400 drop-shadow-lg" />
+                    <Loader2 className="h-7 w-7 animate-spin text-amber-400 drop-shadow-lg" />
                   )}
                 </div>
               )}
             </div>
           )}
-          {/* Video meta */}
-          <div className="p-5 border-b border-white/10 space-y-3">
-            <h2 className="text-base font-semibold leading-snug text-white">
-              {video.title}
-            </h2>
+
+          {/* Meta */}
+          <div className="px-5 py-4 space-y-2.5 border-b border-white/[0.06]">
+            <h2 className="text-sm font-semibold text-white/95 leading-snug">{video.title}</h2>
             {video.description && (
-              <p className="text-sm text-white/60">{video.description}</p>
+              <p className="text-xs text-white/50 leading-relaxed">{video.description}</p>
             )}
-            <div className="flex flex-wrap gap-2 text-xs text-white/50">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/30">
               <span>Uploaded {formatDate(video.createdAt)}</span>
-              {video.updatedAt !== video.createdAt && (
-                <span>· Updated {formatDate(video.updatedAt)}</span>
-              )}
+              {video.fileSize > 0 && <span>{(video.fileSize / 1024 / 1024).toFixed(1)} MB</span>}
+              {video.updatedAt !== video.createdAt && <span>· Updated {formatDate(video.updatedAt)}</span>}
             </div>
-            {video.fileSize > 0 && (
-              <div className="text-xs text-white/40">
-                {(video.fileSize / 1024 / 1024).toFixed(1)} MB
-              </div>
-            )}
           </div>
 
           {/* Activity timeline */}
-          <div className="flex-1 p-5">
-            <p className="mb-4 text-[11px] font-semibold uppercase tracking-widest text-white/40">
-              Activity Timeline
+          <div className="flex-1 px-5 py-4">
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-widest text-white/25">
+              Activity
             </p>
 
             {timelineLoading ? (
-              <div className="flex items-center gap-2 text-sm text-white/40">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Loading timeline…
+              <div className="flex items-center gap-2 mt-4 text-xs text-white/30">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Loading…
               </div>
             ) : timeline.length === 0 ? (
-              <div className="rounded-xl border border-white/10 bg-white/5 p-4 text-center">
-                <p className="text-sm text-white/40">No events recorded yet.</p>
-                <p className="mt-1 text-xs text-white/30">
-                  Events appear as your video moves through the pipeline.
-                </p>
-              </div>
+              <p className="mt-4 text-xs text-white/30">No events yet.</p>
             ) : (
-              <div className="relative space-y-0">
+              <div>
                 {timelineUnavailable && (
-                  <p className="mb-3 text-[11px] text-amber-300/80">
-                    Live timeline service is unavailable. Showing fallback
-                    events.
-                  </p>
+                  <p className="mb-3 mt-2 text-[11px] text-amber-400/60">Showing fallback events.</p>
                 )}
-                {/* Vertical connector line */}
-                <div
-                  className="absolute left-2 top-2 bottom-2 w-px bg-white/10"
-                  aria-hidden
-                />
-
                 {timeline.map((event, i) => (
                   <div
                     key={event.id ?? i}
-                    className="relative pl-8 pb-5 last:pb-0"
+                    className="flex items-start gap-3 py-3.5 border-b border-white/[0.05] last:border-0"
                   >
-                    {/* Dot */}
-                    <span
-                      className={cn(
-                        "absolute left-0 top-1 flex h-4 w-4 items-center justify-center rounded-full border border-white/20",
-                        statusColor(event.status),
-                      )}
-                    >
-                      <span className="h-1.5 w-1.5 rounded-full bg-white/80" />
-                    </span>
-
-                    <div className="rounded-xl border border-white/8 bg-white/5 px-3 py-2.5">
-                      <div className="flex items-start gap-2">
-                        <TimelineIcon kind={event.kind} />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center justify-between gap-2">
-                            <p className="text-xs font-semibold text-white">
-                              {event.title}
-                            </p>
-                            <span className="shrink-0 text-[10px] text-white/40 tabular-nums">
-                              {formatDate(event.createdAt)}
-                            </span>
-                          </div>
-                          <p className="mt-0.5 text-[11px] text-white/50 leading-snug">
-                            {event.detail}
-                          </p>
-                          {typeof event.progress === "number" && (
-                            <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/10">
-                              <div
-                                className="h-full rounded-full bg-amber-400 transition-[width] duration-500"
-                                style={{
-                                  width: `${Math.min(100, event.progress)}%`,
-                                }}
-                              />
-                            </div>
-                          )}
-                        </div>
+                    <div className={cn("mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full", timelineIconBg(event.kind))}>
+                      <TimelineIcon kind={event.kind} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs font-semibold text-white/90">{event.title}</p>
+                        <span className="shrink-0 text-[10px] text-white/25 tabular-nums">{formatDate(event.createdAt)}</span>
                       </div>
+                      <p className="mt-0.5 text-[11px] text-white/45 leading-snug">{event.detail}</p>
+                      {typeof event.progress === "number" && (
+                        <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-white/10">
+                          <div className="h-full rounded-full bg-amber-400 transition-[width] duration-500" style={{ width: `${Math.min(100, event.progress)}%` }} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
