@@ -21,7 +21,8 @@ VisionSync is an on-demand video streaming platform — upload a video, get back
 
 ## Architecture
 
-![System Architecture]()
+<img width="1770" height="722" alt="Screenshot 2026-05-09 200019" src="https://github.com/user-attachments/assets/22fedbb6-36ad-4343-b0f0-009a17bafe75" />
+
 
 **Infrastructure zones:**
 
@@ -35,7 +36,8 @@ All infrastructure provisioned via Pulumi (TypeScript). Databases configured via
 
 ### Network Topology
 
-![Network Topology]()
+
+<img width="1202" height="772" alt="image" src="https://github.com/user-attachments/assets/a714c8dd-49a8-4982-90a2-bafe52f8ea45" />
 
 ---
 
@@ -197,7 +199,8 @@ make clean               # remove build artifacts
 
 ## Video Processing Pipeline
 
-![Pipeline]()
+<img width="1903" height="687" alt="Screenshot 2026-05-09 200405" src="https://github.com/user-attachments/assets/37b43e11-cc82-4459-8d33-a70b5e645700" />
+
 
 ```
 1. Browser   POST /api/upload/generate-presigned-url
