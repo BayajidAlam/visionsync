@@ -45,7 +45,6 @@ const validateEnvironment = (): void => {
     "SUBNET_IDS",
     "SECURITY_GROUP_ID",
     "PROCESSED_BUCKET",
-    "AWS_REGION",
   ];
 
   const missing = required.filter((key) => !process.env[key]);
@@ -114,7 +113,7 @@ const shouldUseSpot = (message: VideoMessage): boolean => {
 
   // Use Spot for most tasks (based on percentage)
   // Use regular Fargate for urgent/large files
-  const isUrgent = message.fileSize > 10.24 * 10.24 * 10.24; // Files > 1GB
+  const isUrgent = message.fileSize > 1024 * 1024 * 1024; // Files > 1GB
   const randomPercent = Math.random() * 100;
 
   return !isUrgent && randomPercent < spotPercentage;
@@ -165,6 +164,9 @@ const startECSTask = async (message: VideoMessage): Promise<string> => {
             { name: "VIDEO_ID", value: message.videoId },
             { name: "VIDEO_BUCKET", value: message.bucketName },
             { name: "VIDEO_FILE_NAME", value: message.fileName },
+            { name: "INSTANCE_TYPE", value: useSpot ? "spot" : "on-demand" },
+            { name: "PROCESSING_PRIORITY", value: useSpot ? "low" : "normal" },
+            { name: "FFMPEG_PRESET", value: useSpot ? "medium" : "fast" },
           ],
         },
       ],

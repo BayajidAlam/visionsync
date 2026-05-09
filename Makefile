@@ -10,7 +10,7 @@ SHELL := /usr/bin/bash
 .PHONY: help install build dev clean deploy destroy outputs update-env save-outputs \
         preflight require-infra require-deploy prepare-key create-inventory ansible-sync ansible-bootstrap \
         setup-mongodb setup-redis setup-all-db check-mongodb check-redis \
-        deploy-server deploy-client deploy-lambda deploy-processor deploy-prod status-prod \
+        deploy-server deploy-client deploy-lambda deploy-processor deploy-prod full-deploy create-server-env status-prod \
         logs-server-prod logs-frontend ssh-frontend ssh-backend-prod
 
 YELLOW := \033[1;33m
@@ -46,7 +46,7 @@ PROCESSED_BUCKET ?= $(shell cd IaC && pulumi stack output processedVideosBucketN
 SQS_QUEUE_URL ?= $(shell cd IaC && pulumi stack output videoProcessingQueueUrl 2>/dev/null)
 MONGODB_URI ?= $(shell cd IaC && pulumi stack output mongodbConnectionString 2>/dev/null)
 REDIS_PASSWORD ?=
-REDIS_URL ?= redis://:$(REDIS_PASSWORD)@$(REDIS_IP):6379
+REDIS_URL ?= $(if $(REDIS_PASSWORD),redis://:$(REDIS_PASSWORD)@$(REDIS_IP):6379,redis://$(REDIS_IP):6379)
 
 LIVE_INVENTORY ?= ansible/live-inventory.ini
 
@@ -68,10 +68,13 @@ help:
 > @echo "  make setup-all-db      - setup mongodb and redis"
 > @echo ""
 > @echo "Application deployment:"
+> @echo "  make full-deploy       - first-time full setup: DB + all app components (after pulumi up)"
+> @echo "  make deploy-prod       - redeploy all app components (server + client + processor + lambda)"
 > @echo "  make deploy-server     - build server image, push ECR, restart backend"
 > @echo "  make deploy-client     - build client image on frontend host"
 > @echo "  make deploy-lambda     - build lambda and update function code directly (no pulumi)"
-> @echo "  make deploy-prod       - deploy server + client + status"
+> @echo "  make deploy-processor  - build and push FFmpeg processor image to ECR"
+> @echo "  make create-server-env - create server/.env from stack outputs (skips if exists)"
 > @echo "  make save-outputs      - cache Pulumi outputs to .env.infra (needs PULUMI_CONFIG_PASSPHRASE)"
 > @echo ""
 > @echo "Operations:"
@@ -268,12 +271,15 @@ deploy-server: preflight require-deploy prepare-key
 deploy-lambda: preflight
 > @echo "$(YELLOW)Building Lambda and updating function code...$(NC)"
 > @cd lambda && npm run build
-> @rm -f /tmp/vision-sync-lambda.zip
-> @cd lambda/dist && zip -r /tmp/vision-sync-lambda.zip . > /dev/null
-> @cd lambda && zip -r /tmp/vision-sync-lambda.zip node_modules/ > /dev/null
+> @powershell -Command "\
+>   $$out = '$$env:TEMP\\vision-sync-lambda.zip';\
+>   Remove-Item -Force $$out -ErrorAction SilentlyContinue;\
+>   Set-Location lambda;\
+>   Compress-Archive -Path 'dist\\*','node_modules' -DestinationPath $$out;\
+>   Write-Host \"Lambda zip: $$out ($$([math]::Round((Get-Item $$out).Length/1MB,1)) MB)\";"
 > @aws lambda update-function-code \
 >   --function-name vision-sync-ecs-trigger-dev \
->   --zip-file fileb:///tmp/vision-sync-lambda.zip \
+>   --zip-file "fileb://$$TEMP/vision-sync-lambda.zip" \
 >   --region $(AWS_REGION) \
 >   --output text --query 'FunctionArn'
 > @aws lambda wait function-updated \
@@ -307,11 +313,34 @@ deploy-client: preflight require-deploy prepare-key
 > @echo "$(YELLOW)Packaging and deploying frontend...$(NC)"
 > @tar --exclude='client/node_modules' --exclude='client/dist' -czf /tmp/vision-sync-client.tar.gz client/
 > @scp -o StrictHostKeyChecking=no -i "$(SAFE_SSH_KEY)" /tmp/vision-sync-client.tar.gz ubuntu@$(FRONTEND_EC2_IP):~/client-src.tar.gz
-> @ssh -o StrictHostKeyChecking=no -i "$(SAFE_SSH_KEY)" ubuntu@$(FRONTEND_EC2_IP) "set -e; rm -rf ~/client-build && mkdir ~/client-build; tar -xzf ~/client-src.tar.gz -C ~/client-build --strip-components=1; cd ~/client-build; docker build --build-arg VITE_API_URL=$(ALB_URL) --build-arg VITE_CLOUDFRONT_URL=$(CLOUDFRONT_DOMAIN) -t vision-sync-client:latest .; docker stop vision-sync-client 2>/dev/null || true; docker rm vision-sync-client 2>/dev/null || true; docker run -d --name vision-sync-client --restart unless-stopped -p 80:80 vision-sync-client:latest; docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep vision-sync-client"
+> @ssh -o StrictHostKeyChecking=no -i "$(SAFE_SSH_KEY)" ubuntu@$(FRONTEND_EC2_IP) "set -e; rm -rf ~/client-build && mkdir ~/client-build; tar -xzf ~/client-src.tar.gz -C ~/client-build --strip-components=1; cd ~/client-build; docker build --build-arg VITE_API_URL=$(ALB_URL) --build-arg VITE_CLOUDFRONT_URL=https://$(CLOUDFRONT_DOMAIN) -t vision-sync-client:latest .; docker stop vision-sync-client 2>/dev/null || true; docker rm vision-sync-client 2>/dev/null || true; docker run -d --name vision-sync-client --restart unless-stopped -p 80:80 vision-sync-client:latest; docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | grep vision-sync-client"
 > @echo "$(GREEN)Frontend deployed$(NC)"
 
-deploy-prod: deploy-server deploy-client status-prod
+deploy-prod: deploy-server deploy-client deploy-processor deploy-lambda status-prod
 > @echo "$(GREEN)Production deployment complete$(NC)"
+
+# Full first-time setup after pulumi up — runs DB setup then all app components
+full-deploy: require-infra
+> @$(MAKE) save-outputs
+> @$(MAKE) create-server-env
+> @$(MAKE) update-env
+> @$(MAKE) ansible-bootstrap
+> @$(MAKE) setup-all-db
+> @$(MAKE) deploy-prod
+> @echo "$(GREEN)Full deployment complete$(NC)"
+
+# Create server/.env from current stack outputs (only if file missing)
+create-server-env: require-infra
+> @if [ -f server/.env ]; then echo "$(YELLOW)server/.env exists, skipping creation$(NC)"; exit 0; fi
+> @printf 'PORT=5000\nNODE_ENV=production\nAWS_REGION=$(AWS_REGION)\n' > server/.env
+> @printf 'S3_BUCKET_RAW=$(RAW_BUCKET)\nS3_BUCKET_PROCESSED=$(PROCESSED_BUCKET)\n' >> server/.env
+> @printf 'SQS_QUEUE_URL=$(SQS_QUEUE_URL)\n' >> server/.env
+> @printf 'MONGODB_URI=$(MONGODB_URI)\n' >> server/.env
+> @printf 'REDIS_URL=$(REDIS_URL)\n' >> server/.env
+> @printf 'CLOUDFRONT_DOMAIN=$(CLOUDFRONT_DOMAIN)\n' >> server/.env
+> @printf 'FRONTEND_URL=$(ALB_URL)\n' >> server/.env
+> @printf 'TRUST_PROXY=true\nRATE_LIMIT_STORE=redis\nLOG_LEVEL=info\n' >> server/.env
+> @echo "$(GREEN)Created server/.env$(NC)"
 
 status-prod: preflight require-deploy prepare-key
 > @echo "$(YELLOW)Frontend container status ($(FRONTEND_EC2_IP))$(NC)"

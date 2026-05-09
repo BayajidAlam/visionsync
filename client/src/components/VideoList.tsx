@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Clock, Eye, FileVideo, Loader2, Play, RefreshCw, Trash2 } from "lucide-react";
+import { Clock, FileVideo, Loader2, Play, RefreshCw, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -230,24 +230,48 @@ export function VideoList({
           {filteredVideos.map((video) => (
             <Card
               key={video.id}
-              className="group cursor-pointer overflow-hidden rounded-2xl border border-border bg-card py-0 shadow-sm transition-all duration-200 hover:border-border hover:shadow-md"
+              className="group cursor-pointer overflow-hidden rounded-2xl border border-border bg-card py-0 shadow-sm transition-all duration-200 hover:shadow-md"
               onClick={() => onVideoSelect(video)}
             >
               <CardContent className="p-0">
                 <div className="relative aspect-video overflow-hidden bg-slate-950">
-                  {video.thumbnailUrl ? (
-                    <img
-                      src={video.thumbnailUrl}
-                      alt={video.title}
-                      className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
-                    />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20">
-                        <Play className="h-5 w-5 translate-x-0.5 text-white/80" />
-                      </div>
+                  {/* Fallback — always present, hidden behind img when img loads */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-slate-800 via-slate-900 to-slate-950">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/10 ring-1 ring-white/20">
+                      <Play className="h-5 w-5 translate-x-0.5 text-white/80" />
                     </div>
+                  </div>
+
+                  {video.status === VideoStatus.READY && (
+                    <img
+                      src={apiService.getThumbnailUrl(video.id)}
+                      alt={video.title}
+                      className="absolute inset-0 h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                      onError={(e) => { e.currentTarget.style.display = "none"; }}
+                    />
                   )}
+
+                  {/* Status badge — top left overlay */}
+                  <Badge
+                    variant="outline"
+                    className={`absolute left-2 top-2 rounded-full border px-2 py-0 text-[11px] font-semibold backdrop-blur-sm ${getStatusBadgeClass(video.status)}`}
+                  >
+                    {(video.status === VideoStatus.PROCESSING ||
+                      video.status === VideoStatus.UPLOADING) && (
+                      <Loader2 className="mr-1 h-2.5 w-2.5 animate-spin" />
+                    )}
+                    {video.status}
+                  </Badge>
+
+                  {/* Delete button — top right overlay, visible on hover */}
+                  <button
+                    type="button"
+                    aria-label="Delete video"
+                    className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white/70 opacity-0 backdrop-blur-sm transition-opacity duration-150 hover:bg-rose-600 hover:text-white group-hover:opacity-100"
+                    onClick={(e) => handleDelete(video.id, e)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
 
                   {video.duration && (
                     <span className="absolute bottom-2 right-2 rounded-md bg-black/80 px-2 py-1 text-xs font-semibold text-white">
@@ -256,22 +280,10 @@ export function VideoList({
                   )}
                 </div>
 
-                <div className="space-y-2.5 p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
-                      {video.title}
-                    </h3>
-                    <Badge
-                      variant="outline"
-                      className={`mt-0.5 shrink-0 rounded-full border px-2 py-0 text-[11px] font-semibold ${getStatusBadgeClass(video.status)}`}
-                    >
-                      {(video.status === VideoStatus.PROCESSING ||
-                        video.status === VideoStatus.UPLOADING) && (
-                        <Loader2 className="mr-1 h-2.5 w-2.5 animate-spin" />
-                      )}
-                      {video.status}
-                    </Badge>
-                  </div>
+                <div className="space-y-1.5 p-4">
+                  <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-foreground">
+                    {video.title}
+                  </h3>
 
                   {video.description && (
                     <p className="line-clamp-1 text-xs text-muted-foreground">
@@ -287,29 +299,6 @@ export function VideoList({
                       {new Date(video.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-2 border-t border-border/60 px-4 pb-3.5 pt-2.5">
-                  <Button
-                    size="sm"
-                    className="h-8 flex-1 rounded-lg text-xs"
-                    disabled={video.status !== VideoStatus.READY}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onVideoSelect(video);
-                    }}
-                  >
-                    <Eye className="mr-1.5 h-3.5 w-3.5" />
-                    Watch
-                  </Button>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-8 w-8 rounded-lg text-muted-foreground hover:text-destructive"
-                    onClick={(e) => handleDelete(video.id, e)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
                 </div>
               </CardContent>
             </Card>

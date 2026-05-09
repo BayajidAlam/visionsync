@@ -70,3 +70,5 @@ temp/
 
 .claude
 .vscode
+.puku
+.agents

@@ -217,9 +217,12 @@ export class VideoProcessor {
         try {
           const info = JSON.parse(output);
           const stream = info.streams?.[0];
-          // tags.rotate is set by phones (MP4/MOV)
+          // tags.rotate is set by phones (MP4/MOV); normalize to [0, 360)
           const tagRotate = parseInt(stream?.tags?.rotate ?? '0', 10);
-          if (tagRotate) { resolve(tagRotate); return; }
+          if (tagRotate) {
+            resolve(((tagRotate % 360) + 360) % 360);
+            return;
+          }
           // side_data_list displaymatrix (newer containers)
           const sideData = stream?.side_data_list?.find(
             (s: any) => s.side_data_type === 'Display Matrix',
@@ -278,13 +281,14 @@ export class VideoProcessor {
         // Processing timeout is enforced at the Node.js process level via setTimeout below.
 
         "-filter_complex",
-        // transposePrefix applies rotation from metadata before split (phones store 1920x1080+rotate=90).
-        // if(gte(iw,ih),...) then checks display-corrected dims: landscape scales by width, portrait by height.
+        // scale to exact target dims with letterbox/pillarbox so all renditions share the same
+        // declared AR — FFmpeg 6 DASH muxer rejects adaptation sets with mismatched ARs.
+        // force_original_aspect_ratio=decrease never upscales; pad fills remainder with black.
         `${transposePrefix}split=4[v1][v2][v3][v4]; ` +
-        "[v1]scale=w='if(gte(iw,ih),min(1920,iw),-2)':h='if(gte(iw,ih),-2,min(1920,ih))'[v1out]; " +
-        "[v2]scale=w='if(gte(iw,ih),min(1280,iw),-2)':h='if(gte(iw,ih),-2,min(1280,ih))'[v2out]; " +
-        "[v3]scale=w='if(gte(iw,ih),min(960,iw),-2)':h='if(gte(iw,ih),-2,min(960,ih))'[v3out]; " +
-        "[v4]scale=w='if(gte(iw,ih),min(640,iw),-2)':h='if(gte(iw,ih),-2,min(640,ih))'[v4out]",
+        "[v1]scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2:black,setsar=1[v1out]; " +
+        "[v2]scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2:black,setsar=1[v2out]; " +
+        "[v3]scale=960:540:force_original_aspect_ratio=decrease,pad=960:540:(ow-iw)/2:(oh-ih)/2:black,setsar=1[v3out]; " +
+        "[v4]scale=640:360:force_original_aspect_ratio=decrease,pad=640:360:(ow-iw)/2:(oh-ih)/2:black,setsar=1[v4out]",
 
         // COST OPTIMIZATION: Video streams with optimized bitrates
         ...(this.env.processingPriority === "low"
@@ -394,6 +398,8 @@ export class VideoProcessor {
         "48",
         "-preset",
         this.env.ffmpegPreset, // 'fast' for regular, 'medium' for Spot
+        "-pix_fmt:v",
+        "yuv420p",
         "-profile:v",
         "high",
         "-level",

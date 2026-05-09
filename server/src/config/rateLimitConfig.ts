@@ -11,11 +11,11 @@ export const RateLimitConfig = {
     description: "General API rate limit for standard endpoints",
   },
 
-  // Video upload endpoints - most restrictive
+  // Video upload endpoints
   upload: {
     windowMs: 15 * 60 * 1000, // 15 minutes
-    maxRequests: 3, // Only 3 uploads per 15 minutes
-    description: "Strict upload limit to prevent abuse and control costs",
+    maxRequests: 20, // 20 uploads per 15 minutes
+    description: "Upload limit to prevent abuse and control costs",
   },
 
   // Video streaming endpoints - high volume support

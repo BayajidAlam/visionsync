@@ -60,6 +60,14 @@ function formatBitrate(bps: number): string {
   return `${Math.round(bps / 1000)} kbps`;
 }
 
+// Prefer the Representation id (e.g. "360p") set by the container's renaming step.
+// Falling back to height or bitrate handles old/non-relabelled streams.
+function qualityLabel(track: DashQualityLevel): string {
+  if (track.id && /^\d+p$/.test(track.id)) return track.id;
+  if (track.height) return `${track.height}p`;
+  return formatBitrate(track.bitrate);
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
     month: "short",
@@ -816,7 +824,7 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
                           >
                             <Settings className="h-3.5 w-3.5" />
                             <span className="hidden sm:inline">
-                              {currentQuality === -1 ? "Auto" : selectedQualityTrack?.height ? `${selectedQualityTrack.height}p` : selectedQualityTrack ? formatBitrate(selectedQualityTrack.bitrate) : "Auto"}
+                              {currentQuality === -1 ? "Auto" : selectedQualityTrack ? qualityLabel(selectedQualityTrack) : "Auto"}
                             </span>
                           </button>
 
@@ -836,7 +844,7 @@ export function VideoWatch({ video, onClose }: VideoWatchProps) {
                                     className={cn("w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-white/8 transition", currentQuality === track.index && "text-white font-medium")}
                                     onClick={() => changeQuality(track.index)}
                                   >
-                                    {track.height ? `${track.height}p` : formatBitrate(track.bitrate)}
+                                    {qualityLabel(track)}
                                     <span className="ml-1.5 text-white/35">{formatBitrate(track.bitrate)}</span>
                                   </button>
                                 ))

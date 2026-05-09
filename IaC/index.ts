@@ -7,6 +7,7 @@ export * from "./src/networking/alb";
 
 // Storage
 export * from "./src/storage/s3";
+import "./src/storage/s3-cors";
 
 // Database
 export * from "./src/database/mongodb";

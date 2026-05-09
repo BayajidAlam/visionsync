@@ -58,23 +58,8 @@ new aws.s3.BucketPublicAccessBlock("processed-videos-pab", {
   restrictPublicBuckets: true,
 });
 
-// CORS configuration for raw videos bucket — allows browser presigned-URL uploads
-new aws.s3.BucketCorsConfigurationV2("raw-videos-cors", {
-  bucket: rawVideosBucket.id,
-  corsRules: [
-    {
-      allowedHeaders: ["*"],
-      allowedMethods: ["PUT", "POST", "GET", "HEAD"],
-      allowedOrigins: [
-        "http://vision-sync-alb-dev-220657630.ap-southeast-1.elb.amazonaws.com",
-        "http://localhost:5173",
-        "http://localhost:3000",
-      ],
-      exposeHeaders: ["ETag"],
-      maxAgeSeconds: 3000,
-    },
-  ],
-});
+// CORS for raw videos bucket is defined in ./s3-cors.ts to avoid a circular import:
+//   s3.ts → alb.ts → backend/ec2.ts → s3.ts
 
 // CORS configuration for processed videos (for CloudFront)
 new aws.s3.BucketCorsConfigurationV2("processed-videos-cors", {
@@ -120,7 +105,7 @@ export const distribution = new aws.cloudfront.Distribution(
   {
     origins: [
       {
-        domainName: processedVideosBucket.bucketDomainName,
+        domainName: processedVideosBucket.bucketRegionalDomainName,
         originId: processedVideosBucket.id,
         originAccessControlId: oac.id,
       },

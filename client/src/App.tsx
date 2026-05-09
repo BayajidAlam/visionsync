@@ -3,8 +3,6 @@ import {
   AlertTriangle,
   Bell,
   CheckCircle2,
-  Compass,
-  Flame,
   Home,
   Loader2,
   Moon,
@@ -12,7 +10,6 @@ import {
   Search,
   Sparkles,
   SunMedium,
-  Tv2,
   UploadCloud,
   X,
 } from "lucide-react";
@@ -36,7 +33,7 @@ import "./App.css";
 type ThemeMode = "light" | "dark";
 type AppMode = "feed" | "studio";
 type StatusFilter = "all" | VideoStatusValue;
-type NavKey = "home" | "explore" | "subscriptions" | "trending" | "studio";
+type NavKey = "home" | "studio";
 
 interface AppNotification {
   id: string;
@@ -48,6 +45,7 @@ interface AppNotification {
   progress?: number;
   createdAt: number;
   read: boolean;
+  resolved?: boolean;
 }
 
 const normalizeSocketStatus = (
@@ -139,27 +137,6 @@ function App() {
       mode: "feed",
     },
     {
-      id: "explore",
-      icon: Compass,
-      label: "Explore",
-      mobileLabel: "Explore",
-      mode: "feed",
-    },
-    {
-      id: "subscriptions",
-      icon: Tv2,
-      label: "Subscriptions",
-      mobileLabel: "Subs",
-      mode: "feed",
-    },
-    {
-      id: "trending",
-      icon: Flame,
-      label: "Trending",
-      mobileLabel: "Trend",
-      mode: "feed",
-    },
-    {
       id: "studio",
       icon: UploadCloud,
       label: "Studio",
@@ -228,6 +205,11 @@ function App() {
       .fetchNotifications(undefined, 30)
       .then((items) => {
         if (items.length === 0) return;
+        const terminalVideoIds = new Set(
+          items
+            .filter((n) => n.kind === "ready" || n.kind === "error")
+            .map((n) => n.videoId),
+        );
         setNotifications(
           items.map((n) => ({
             id: n.id,
@@ -239,6 +221,7 @@ function App() {
             progress: n.progress,
             createdAt: new Date(n.createdAt).getTime(),
             read: true, // historical items start as read
+            resolved: n.kind === "processing" && terminalVideoIds.has(n.videoId),
           })),
         );
       })
@@ -425,6 +408,19 @@ function App() {
       title = `${videoName} needs attention`;
       detail = videoStatus.error || videoStatus.message || "Processing failed.";
       kind = "error";
+    }
+
+    if (
+      normalizedStatus === VideoStatus.READY ||
+      normalizedStatus === VideoStatus.ERROR
+    ) {
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.videoId === videoStatus.videoId && n.kind === "processing"
+            ? { ...n, resolved: true }
+            : n,
+        ),
+      );
     }
 
     addNotification({
@@ -729,7 +725,11 @@ function App() {
                               ) : notification.kind === "error" ? (
                                 <AlertTriangle className="h-4 w-4 text-rose-500" />
                               ) : notification.kind === "processing" ? (
-                                <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                                notification.resolved ? (
+                                  <CheckCircle2 className="h-4 w-4 text-amber-500" />
+                                ) : (
+                                  <Loader2 className="h-4 w-4 animate-spin text-amber-500" />
+                                )
                               ) : notification.kind === "upload" ? (
                                 <UploadCloud className="h-4 w-4 text-sky-500" />
                               ) : (
@@ -887,41 +887,19 @@ function App() {
           )}
 
           {appMode === "studio" ? (
-            <div className="grid gap-6 xl:grid-cols-3">
-              <div className="xl:col-span-2">
-                <VideoUploadComponent
-                  onUploadComplete={handleUploadComplete}
-                  onUploadStart={handleUploadStart}
-                />
-              </div>
-
-              <div className="space-y-6">
-                {/* Video playback happens via the full-screen VideoWatch overlay.
-                    Studio sidebar shows upload guidance instead of duplicating a player. */}
-                <div className="yt-surface p-6">
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                    Preview Dock
-                  </p>
-                  <h3 className="mt-2 text-lg font-semibold text-foreground">
-                    Pick a video from the feed to preview playback.
-                  </h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    You can keep uploading in studio while quickly validating
-                    stream readiness from this panel.
-                  </p>
-                </div>
-              </div>
-
-              <div className="xl:col-span-3">
-                <VideoList
-                  refreshTrigger={refreshTrigger}
-                  onVideoSelect={handleVideoSelect}
-                  filterQuery={debouncedSearch}
-                  statusFilter={statusFilter}
-                  onVideosLoaded={handleVideosLoaded}
-                  videoStatusUpdate={videoStatus}
-                />
-              </div>
+            <div className="space-y-6">
+              <VideoUploadComponent
+                onUploadComplete={handleUploadComplete}
+                onUploadStart={handleUploadStart}
+              />
+              <VideoList
+                refreshTrigger={refreshTrigger}
+                onVideoSelect={handleVideoSelect}
+                filterQuery={debouncedSearch}
+                statusFilter={statusFilter}
+                onVideosLoaded={handleVideosLoaded}
+                videoStatusUpdate={videoStatus}
+              />
             </div>
           ) : (
             <div className="space-y-6">

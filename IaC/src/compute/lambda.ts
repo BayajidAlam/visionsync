@@ -1,6 +1,6 @@
 import * as aws from "@pulumi/aws";
 import * as pulumi from "@pulumi/pulumi";
-import { commonTags, region } from "../config";
+import { commonTags } from "../config";
 import { lambdaExecutionRole } from "../security/iam";
 import { videoProcessingQueue, videoProcessingDLQ } from "../messaging/sqs";
 import { lambdaLogGroup } from "../monitoring/logs";
@@ -67,17 +67,15 @@ export const lambdaWithDependency = new aws.lambda.Function(
           ecsCluster.name,
           ecsTaskDefinition.arn,
           vpc.privateSubnetIds,
-          lambdaSg.id, // FIX: Use dedicated Lambda SG instead of default VPC SG
+          lambdaSg.id,
           processedVideosBucket.bucket,
-          region,
         ])
-        .apply(([clusterName, taskDefArn, subnetIds, sgId, bucket, reg]) => ({
+        .apply(([clusterName, taskDefArn, subnetIds, sgId, bucket]) => ({
           ECS_CLUSTER: clusterName,
           ECS_TASK_DEFINITION: taskDefArn,
           SUBNET_IDS: subnetIds.join(","),
           SECURITY_GROUP_ID: sgId,
           PROCESSED_BUCKET: bucket,
-          AWS_REGION: reg.name, // FIX: Changed from REGION to AWS_REGION to match Lambda code
         })),
     },
 

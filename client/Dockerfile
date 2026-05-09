@@ -1,5 +1,5 @@
 # Multi-stage build for React frontend
-FROM node:18-alpine AS builder
+FROM node:20-alpine AS builder
 
 # Accept API URL and CloudFront domain as build arguments
 ARG VITE_API_URL=http://localhost:5000

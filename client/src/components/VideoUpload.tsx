@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Upload, X, Check, AlertCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -245,41 +244,35 @@ export function VideoUploadComponent({
   };
 
   return (
-    <Card className="yt-surface border-0 bg-card/80 py-0 shadow-none pb-5">
-      <CardHeader className="border-b border-border/70 pb-4 pt-5">
-        <CardTitle className="flex items-center justify-between">
-          <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-              Creator Studio
-            </p>
-            <span className="text-xl">Upload Videos</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {isConnected === null && (
-              <Badge variant="secondary">
-                <Loader2 className="h-3 w-3 animate-spin mr-1" />
-                Checking...
-              </Badge>
-            )}
-            {isConnected === true && (
-              <Badge
-                variant="secondary"
-                className="bg-green-100 text-green-800"
-              >
-                <Check className="h-3 w-3 mr-1" />
-                Connected
-              </Badge>
-            )}
-            {isConnected === false && (
-              <Badge variant="destructive">
-                <AlertCircle className="h-3 w-3 mr-1" />
-                Disconnected
-              </Badge>
-            )}
-          </div>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="yt-surface space-y-4 p-5 sm:p-6">
+      <div className="flex items-center justify-between border-b border-border/70 pb-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+            Creator Studio
+          </p>
+          <p className="mt-0.5 text-xl font-bold text-foreground">Upload Videos</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {isConnected === null && (
+            <Badge variant="secondary">
+              <Loader2 className="h-3 w-3 animate-spin mr-1" />
+              Checking...
+            </Badge>
+          )}
+          {isConnected === true && (
+            <Badge variant="secondary" className="bg-green-100 text-green-800">
+              <Check className="h-3 w-3 mr-1" />
+              Connected
+            </Badge>
+          )}
+          {isConnected === false && (
+            <Badge variant="destructive">
+              <AlertCircle className="h-3 w-3 mr-1" />
+              Disconnected
+            </Badge>
+          )}
+        </div>
+      </div>
         {/* Connection Warning */}
         {isConnected === false && (
           <Alert variant="destructive">
@@ -447,7 +440,6 @@ export function VideoUploadComponent({
             </div>
           </div>
         )}
-      </CardContent>
-    </Card>
+    </div>
   );
 }
